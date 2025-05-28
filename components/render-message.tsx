@@ -1,5 +1,5 @@
 import { ChatRequestOptions, JSONValue, Message, ToolInvocation } from 'ai'
-import { useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 import { AnswerSection } from './answer-section'
 import { ReasoningSection } from './reasoning-section'
 import RelatedQuestions from './related-questions'
@@ -74,6 +74,10 @@ export function RenderMessage({
     return Array.from(toolDataMap.values())
   }, [message.annotations])
 
+  const handleOpenChange = useCallback(
+    (id: string) => (open: boolean) => onOpenChange(id, open),
+    [onOpenChange]
+  )
   // Extract the unified reasoning annotation directly.
   const reasoningAnnotation = useMemo(() => {
     const annotations = message.annotations as any[] | undefined
@@ -130,9 +134,7 @@ export function RenderMessage({
                 key={`${messageId}-tool-${index}`}
                 tool={part.toolInvocation}
                 isOpen={getIsOpen(part.toolInvocation.toolCallId)}
-                onOpenChange={open =>
-                  onOpenChange(part.toolInvocation.toolCallId, open)
-                }
+                onOpenChange={handleOpenChange(part.toolInvocation.toolCallId)}
                 addToolResult={addToolResult}
               />
             )
@@ -143,7 +145,7 @@ export function RenderMessage({
                 key={`${messageId}-text-${index}`}
                 content={part.text}
                 isOpen={getIsOpen(messageId)}
-                onOpenChange={open => onOpenChange(messageId, open)}
+                onOpenChange={handleOpenChange(messageId)}
                 chatId={chatId}
                 showActions={isLastPart}
                 messageId={messageId}
@@ -159,7 +161,7 @@ export function RenderMessage({
                   time: reasoningTime
                 }}
                 isOpen={getIsOpen(messageId)}
-                onOpenChange={open => onOpenChange(messageId, open)}
+                onOpenChange={handleOpenChange(messageId)}
               />
             )
           // Add other part types as needed
@@ -172,7 +174,7 @@ export function RenderMessage({
           annotations={relatedQuestions as JSONValue[]}
           onQuerySelect={onQuerySelect}
           isOpen={getIsOpen(`${messageId}-related`)}
-          onOpenChange={open => onOpenChange(`${messageId}-related`, open)}
+          onOpenChange={handleOpenChange(`${messageId}-related`)}
         />
       )}
     </>

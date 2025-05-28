@@ -40,7 +40,7 @@ export function MessageActions({
     <div
       className={cn(
         'flex items-center gap-0.5 self-end transition-opacity duration-200',
-        isLoading ? 'opacity-0' : 'opacity-100',
+        isLoading ? 'opacity-0' : 'opacity-60',
         className
       )}
     >
@@ -51,7 +51,7 @@ export function MessageActions({
         onClick={handleCopy}
         className="rounded-full"
       >
-        <Copy size={14} />
+        <Copy size={12} />
       </Button>
       {enableShare && chatId && <ChatShare chatId={chatId} />}
     </div>

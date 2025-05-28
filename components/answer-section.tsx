@@ -41,7 +41,7 @@ export function AnswerSection({
       <div className="flex flex-row space-x-3">
         <Icon
           name="asterisk"
-          className="dark:text-pink-500/80 text-pink-500 size-5"
+          className="dark:text-pink-500/80 shrink-0 text-pink-500 size-5"
         />
         <BotMessage message={content} />
       </div>

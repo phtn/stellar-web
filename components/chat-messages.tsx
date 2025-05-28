@@ -136,10 +136,10 @@ export function ChatMessages({
             }
           >
             {/* User message */}
-            <div className="flex font-space flex-col items-end gap-4 mb-4">
+            <div className="flex font-space flex-col items-end gap-4 mb-8">
               <RenderMessage
                 message={section.userMessage}
-                messageId={'x' + section.userMessage.id}
+                messageId={section.userMessage.id}
                 getIsOpen={getIsOpen}
                 onOpenChange={handleOpenChange}
                 onQuerySelect={onQuerySelect}
@@ -155,7 +155,7 @@ export function ChatMessages({
             {section.assistantMessages.map(assistantMessage => (
               <div
                 key={assistantMessage.id}
-                className="flex flex-col max-w-prose gap-4"
+                className="flex flex-col p-2 border border-muted/20 dark:bg-muted/30 bg-muted/50 rounded-2xl italic max-w-prose gap-4"
               >
                 <RenderMessage
                   message={assistantMessage}

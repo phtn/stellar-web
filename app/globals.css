@@ -117,5 +117,14 @@
   }
   body {
     @apply bg-background text-foreground;
+    :-webkit-scrollbar {
+      display: none;
+    }
+    :-webkit-scrollbar-track {
+      display: none;
+    }
+    :-webkit-scrollbar-thumb {
+      display: none;
+    }
   }
 }

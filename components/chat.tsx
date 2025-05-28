@@ -457,7 +457,7 @@ export function Chat({
       )}
       data-testid="full-chat"
     >
-      <div className="absolute dark:hidden z-0 opacity-40 left-0 top-0">
+      <div className="absolute hidden z-0 opacity-40 left-0 top-0">
         <Image
           src={'/images/light.jpeg'}
           width={0}
