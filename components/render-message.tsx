@@ -110,7 +110,7 @@ export function RenderMessage({
   // New way: Use parts instead of toolInvocations
   return (
     <>
-      {toolData.map(tool => (
+      {/* {toolData.map(tool => (
         <ToolSection
           key={tool.toolCallId}
           tool={tool}
@@ -118,7 +118,7 @@ export function RenderMessage({
           onOpenChange={open => onOpenChange(tool.toolCallId, open)}
           addToolResult={addToolResult}
         />
-      ))}
+      ))} */}
       {message.parts?.map((part, index) => {
         // Check if this is the last part in the array
         const isLastPart = index === (message.parts?.length ?? 0) - 1

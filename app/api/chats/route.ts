@@ -1,5 +1,5 @@
 import { getChatsPage } from '@/lib/actions/chat'
-import { getCurrentUserId } from '@/lib/auth/get-current-user'
+// import { getCurrentUserId } from '@/lib/auth/get-current-user'
 import { type Chat } from '@/lib/types'
 import { NextRequest, NextResponse } from 'next/server'
 
@@ -15,10 +15,10 @@ export async function GET(request: NextRequest) {
   }
 
   const { searchParams } = new URL(request.url)
-  const offset = parseInt(searchParams.get('offset') || '0', 10)
-  const limit = parseInt(searchParams.get('limit') || '20', 10)
+  const offset = parseInt(searchParams.get('offset') ?? '0', 10)
+  const limit = parseInt(searchParams.get('limit') ?? '20', 10)
 
-  const userId = await getCurrentUserId()
+  const userId = 'randomUser01'
 
   try {
     const result = await getChatsPage(userId, limit, offset)

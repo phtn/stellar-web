@@ -1,5 +1,3 @@
-'use client'
-
 import { cn } from '@/lib/utils'
 import { ChatRequestOptions, JSONValue, Message } from 'ai'
 import { useEffect, useMemo, useState } from 'react'
@@ -31,15 +29,15 @@ interface ChatMessagesProps {
 }
 
 export function ChatMessages({
+  onQuerySelect,
   sections,
   data,
-  onQuerySelect,
-  isLoading,
   chatId,
+  reload,
+  isLoading,
   addToolResult,
-  scrollContainerRef,
   onUpdateMessage,
-  reload
+  scrollContainerRef
 }: ChatMessagesProps) {
   const [openStates, setOpenStates] = useState<Record<string, boolean>>({})
   const manualToolCallId = 'manual-tool-call'

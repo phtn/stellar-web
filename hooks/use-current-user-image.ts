@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/client'
+// import { createClient } from '@/lib/supabase/client'
 import { useEffect, useState } from 'react'
 
 export const useCurrentUserImage = () => {
@@ -6,12 +6,12 @@ export const useCurrentUserImage = () => {
 
   useEffect(() => {
     const fetchUserImage = async () => {
-      const { data, error } = await createClient().auth.getSession()
-      if (error) {
-        console.error(error)
-      }
+      // const { data, error } = await createClient().auth.getSession()
+      // if (error) {
+      //   console.error(error)
+      // }
 
-      setImage(data.session?.user.user_metadata.avatar_url ?? null)
+      setImage('https://www.svgrepo.com/svg/317464/soldier')
     }
     fetchUserImage()
   }, [])

@@ -1,4 +1,5 @@
 import { anthropic } from '@ai-sdk/anthropic'
+import { cohere, createCohere } from '@ai-sdk/cohere'
 import { createAzure } from '@ai-sdk/azure'
 import { deepseek } from '@ai-sdk/deepseek'
 import { createFireworks, fireworks } from '@ai-sdk/fireworks'
@@ -14,6 +15,9 @@ import {
 import { createOllama } from 'ollama-ai-provider'
 
 export const registry = createProviderRegistry({
+  cohere: createCohere({
+    apiKey: `${process.env.STELLAR_API_KEY}`
+  }),
   openai,
   anthropic,
   google,
@@ -84,6 +88,12 @@ export function getModel(model: string) {
     })
   }
 
+  if (model.includes('ellie')) {
+    return {
+      model: cohere('command-a-03-2025')
+    }
+  }
+
   return registry.languageModel(
     model as Parameters<typeof registry.languageModel>[0]
   )
@@ -91,6 +101,8 @@ export function getModel(model: string) {
 
 export function isProviderEnabled(providerId: string): boolean {
   switch (providerId) {
+    case 'stellar':
+      return !!process.env.STELLAR_API_KEY
     case 'openai':
       return !!process.env.OPENAI_API_KEY
     case 'anthropic':

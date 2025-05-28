@@ -6,22 +6,25 @@ import { SidebarProvider } from '@/components/ui/sidebar'
 import { Toaster } from '@/components/ui/sonner'
 import { createClient } from '@/lib/supabase/server'
 import { cn } from '@/lib/utils'
-import { Analytics } from '@vercel/analytics/next'
+// import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
-import { Inter as FontSans } from 'next/font/google'
+import { Inter as FontSans, Space_Grotesk } from 'next/font/google'
 import './globals.css'
 
 const fontSans = FontSans({
   subsets: ['latin'],
   variable: '--font-sans'
 })
-
-const title = 'Morphic'
+const space = Space_Grotesk({
+  subsets: ['latin'],
+  variable: '--font-space'
+})
+const title = 'Stellar'
 const description =
   'A fully open-source AI-powered answer engine with a generative UI.'
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://morphic.sh'),
+  metadataBase: new URL('https://stellar.sh'),
   title,
   description,
   openGraph: {
@@ -32,7 +35,7 @@ export const metadata: Metadata = {
     title,
     description,
     card: 'summary_large_image',
-    creator: '@miiura'
+    creator: '@xpriori'
   }
 }
 
@@ -65,7 +68,8 @@ export default async function RootLayout({
       <body
         className={cn(
           'min-h-screen flex flex-col font-sans antialiased',
-          fontSans.variable
+          fontSans.variable,
+          space.variable
         )}
       >
         <ThemeProvider
@@ -84,7 +88,7 @@ export default async function RootLayout({
             </div>
           </SidebarProvider>
           <Toaster />
-          <Analytics />
+          {/* <Analytics /> */}
         </ThemeProvider>
       </body>
     </html>

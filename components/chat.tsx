@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils'
 import { useChat } from '@ai-sdk/react'
 import { ChatRequestOptions } from 'ai'
 import { Message } from 'ai/react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { ChatMessages } from './chat-messages'
 import { ChatPanel } from './chat-panel'
@@ -17,6 +17,44 @@ interface ChatSection {
   userMessage: Message
   assistantMessages: Message[]
 }
+
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList
+  resultIndex: number
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+  error: string
+  message: string
+}
+
+interface SpeechRecognition extends EventTarget {
+  continuous: boolean
+  interimResults: boolean
+  lang: string
+  start(): void
+  stop(): void
+  abort(): void
+  addEventListener(
+    type: 'result',
+    listener: (event: SpeechRecognitionEvent) => void
+  ): void
+  addEventListener(
+    type: 'error',
+    listener: (event: SpeechRecognitionErrorEvent) => void
+  ): void
+  addEventListener(type: 'end', listener: () => void): void
+  addEventListener(type: 'start', listener: () => void): void
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition: new () => SpeechRecognition
+    webkitSpeechRecognition: new () => SpeechRecognition
+  }
+}
+
+type RecordingMethod = 'browser' | 'manual'
 
 export function Chat({
   id,
@@ -31,10 +69,26 @@ export function Chat({
 }) {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [isAtBottom, setIsAtBottom] = useState(true)
+  const audioRef = useRef<HTMLAudioElement>(null)
+  const [isGeneratingAudio, setIsGeneratingAudio] = useState<boolean>(false)
+
+  const [isRecording, setIsRecording] = useState<boolean>(false)
+  const [recordingMethod] = useState<RecordingMethod>('browser')
+  const [transcript, setTranscript] = useState<string>('')
+  const [isProcessingAudio, setIsProcessingAudio] = useState<boolean>(false)
+
+  // Browser Speech Recognition
+  const recognitionRef = useRef<SpeechRecognition | null>(null)
+
+  // Manual recording
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
+  const streamRef = useRef<MediaStream | null>(null)
 
   const {
     messages,
     input,
+    setInput,
     handleInputChange,
     handleSubmit,
     status,
@@ -51,9 +105,13 @@ export function Chat({
     body: {
       id
     },
-    onFinish: () => {
-      window.history.replaceState({}, '', `/search/${id}`)
-      window.dispatchEvent(new CustomEvent('chat-history-updated'))
+    onFinish: async msg => {
+      if (msg.role === 'assistant') {
+        console.log('generating speech')
+        await generateSpeech(msg.content)
+      }
+      // window.history.replaceState({}, '', `/search/${id}`)
+      // window.dispatchEvent(new CustomEvent('chat-history-updated'))
     },
     onError: error => {
       toast.error(`Error in chat: ${error.message}`)
@@ -62,6 +120,196 @@ export function Chat({
     experimental_throttle: 100
   })
 
+  const generateSpeech = useCallback(async (content: string): Promise<void> => {
+    setIsGeneratingAudio(true)
+    try {
+      const response = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content })
+      })
+
+      if (!response.ok) {
+        throw new Error('TTS request failed')
+      }
+
+      const audioBlob = await response.blob()
+      const audioUrl = URL.createObjectURL(audioBlob)
+
+      if (audioRef.current) {
+        audioRef.current.src = audioUrl
+        await audioRef.current.play()
+
+        audioRef.current.addEventListener(
+          'ended',
+          () => {
+            URL.revokeObjectURL(audioUrl)
+          },
+          { once: true }
+        )
+      }
+    } catch (error) {
+      console.error('Audio generation/playback failed:', error)
+    } finally {
+      setIsGeneratingAudio(false)
+    }
+  }, [])
+
+  // ASR
+  useEffect(() => {
+    if (
+      typeof window !== 'undefined' &&
+      (window.SpeechRecognition || window.webkitSpeechRecognition)
+    ) {
+      const SpeechRecognition =
+        window.SpeechRecognition || window.webkitSpeechRecognition
+      recognitionRef.current = new SpeechRecognition()
+
+      if (recognitionRef.current) {
+        recognitionRef.current.continuous = false
+        recognitionRef.current.interimResults = true
+        recognitionRef.current.lang = 'en-US'
+
+        recognitionRef.current.addEventListener(
+          'result',
+          (event: SpeechRecognitionEvent) => {
+            let finalTranscript = ''
+            let interimTranscript = ''
+
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+              const transcript = event.results[i][0].transcript
+              if (event.results[i].isFinal) {
+                finalTranscript += transcript
+              } else {
+                interimTranscript += transcript
+              }
+            }
+
+            if (finalTranscript) {
+              setTranscript('')
+              setInput(prev => prev + finalTranscript + '. ')
+              setIsRecording(false)
+            } else {
+              setTranscript(interimTranscript ?? transcript + '. ')
+            }
+          }
+        )
+
+        recognitionRef.current.addEventListener(
+          'error',
+          (event: SpeechRecognitionErrorEvent) => {
+            console.log('Speech recognition error:', event.error)
+            setIsRecording(false)
+            setTranscript('')
+          }
+        )
+
+        recognitionRef.current.addEventListener('end', () => {
+          setIsRecording(false)
+          setTranscript('')
+        })
+      }
+    }
+  }, [setInput, transcript])
+
+  const startBrowserRecording = (): void => {
+    if (recognitionRef.current && !isRecording) {
+      setIsRecording(true)
+      setTranscript('')
+      recognitionRef.current.start()
+    }
+  }
+  const stopBrowserRecording = (): void => {
+    if (recognitionRef.current && isRecording) {
+      recognitionRef.current.stop()
+    }
+  }
+
+  const startManualRecording = async (): Promise<void> => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      streamRef.current = stream
+
+      const mediaRecorder = new MediaRecorder(stream)
+      mediaRecorderRef.current = mediaRecorder
+      audioChunksRef.current = []
+
+      mediaRecorder.addEventListener('dataavailable', event => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data)
+        }
+      })
+
+      mediaRecorder.addEventListener('stop', async () => {
+        const audioBlob = new Blob(audioChunksRef.current, {
+          type: 'audio/wav'
+        })
+        await processAudioFile(audioBlob)
+
+        // Clean up
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach(track => track.stop())
+          streamRef.current = null
+        }
+      })
+
+      mediaRecorder.start()
+      setIsRecording(true)
+    } catch (error) {
+      console.error('Error accessing microphone:', error)
+    }
+  }
+
+  const stopManualRecording = (): void => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop()
+      setIsRecording(false)
+    }
+  }
+
+  const processAudioFile = async (audioBlob: Blob): Promise<void> => {
+    setIsProcessingAudio(true)
+    try {
+      const formData = new FormData()
+      formData.append('audio', audioBlob, 'recording.wav')
+
+      const response = await fetch('/api/stt', {
+        method: 'POST',
+        body: formData
+      })
+
+      const result = await response.json()
+
+      if (result.success && result.text) {
+        setInput(prev => prev + result.text)
+      } else {
+        console.error('STT failed:', result.error)
+      }
+    } catch (error) {
+      console.error('Error processing audio:', error)
+    } finally {
+      setIsProcessingAudio(false)
+    }
+  }
+
+  const handleRecordingToggle = (): void => {
+    if (recordingMethod === 'browser' && isBrowserSpeechSupported) {
+      if (isRecording) {
+        stopBrowserRecording()
+      } else {
+        startBrowserRecording()
+      }
+    } else {
+      if (isRecording) {
+        stopManualRecording()
+      } else {
+        startManualRecording()
+      }
+    }
+  }
+  const isBrowserSpeechSupported =
+    typeof window !== 'undefined' &&
+    (window.SpeechRecognition || window.webkitSpeechRecognition)
   const isLoading = status === 'submitted' || status === 'streaming'
 
   // Convert messages array to sections array
@@ -211,7 +459,7 @@ export function Chat({
         sections={sections}
         data={data}
         onQuerySelect={onQuerySelect}
-        isLoading={isLoading}
+        isLoading={isLoading || isGeneratingAudio}
         chatId={id}
         addToolResult={addToolResult}
         scrollContainerRef={scrollContainerRef}
@@ -222,7 +470,7 @@ export function Chat({
         input={input}
         handleInputChange={handleInputChange}
         handleSubmit={onSubmit}
-        isLoading={isLoading}
+        isLoading={isLoading || isProcessingAudio}
         messages={messages}
         setMessages={setMessages}
         stop={stop}
@@ -231,7 +479,9 @@ export function Chat({
         models={models}
         showScrollToBottomButton={!isAtBottom}
         scrollContainerRef={scrollContainerRef}
+        voiceToggle={handleRecordingToggle}
       />
+      <audio ref={audioRef} style={{ display: 'none' }} />
     </div>
   )
 }

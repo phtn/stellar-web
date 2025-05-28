@@ -2,7 +2,7 @@
 
 import { cn } from '@/lib/utils'
 import { getCookie, setCookie } from '@/lib/utils/cookies'
-import { Globe } from 'lucide-react'
+import { Globe, XIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Toggle } from './ui/toggle'
 
@@ -31,14 +31,18 @@ export function SearchModeToggle() {
       variant="outline"
       className={cn(
         'gap-1 px-3 border border-input text-muted-foreground bg-background',
-        'data-[state=on]:bg-accent-blue',
-        'data-[state=on]:text-accent-blue-foreground',
-        'data-[state=on]:border-accent-blue-border',
-        'hover:bg-accent hover:text-accent-foreground rounded-full'
+        'data-[state=on]:bg-primary',
+        'data-[state=on]:text-destructive-foreground',
+        'data-[state=on]:border-destructive-border',
+        'hover:bg-destructive hover:text-destructive-foreground rounded-full'
       )}
     >
-      <Globe className="size-4" />
-      <span className="text-xs">Search</span>
+      <div className="flex item-center justify-center -space-x-2.5">
+        <XIcon className="opacity-40 size-3 scale-75" />
+        <XIcon className="size-5 stroke-2 text-rose-500" />
+        <XIcon className="opacity-40 size-2 scale-75" />
+      </div>
+      <span className="text-xs">Extreme</span>
     </Toggle>
   )
 }

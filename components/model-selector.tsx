@@ -21,14 +21,17 @@ import { Popover, PopoverContent, PopoverTrigger } from './ui/popover'
 function groupModelsByProvider(models: Model[]) {
   return models
     .filter(model => model.enabled)
-    .reduce((groups, model) => {
-      const provider = model.provider
-      if (!groups[provider]) {
-        groups[provider] = []
-      }
-      groups[provider].push(model)
-      return groups
-    }, {} as Record<string, Model[]>)
+    .reduce(
+      (groups, model) => {
+        const provider = model.provider
+        if (!groups[provider]) {
+          groups[provider] = []
+        }
+        groups[provider].push(model)
+        return groups
+      },
+      {} as Record<string, Model[]>
+    )
 }
 
 interface ModelSelectorProps {
@@ -54,14 +57,16 @@ export function ModelSelector({ models }: ModelSelectorProps) {
   const handleModelSelect = (id: string) => {
     const newValue = id === value ? '' : id
     setValue(newValue)
-    
-    const selectedModel = models.find(model => createModelId(model) === newValue)
+
+    const selectedModel = models.find(
+      model => createModelId(model) === newValue
+    )
     if (selectedModel) {
       setCookie('selectedModel', JSON.stringify(selectedModel))
     } else {
       setCookie('selectedModel', '')
     }
-    
+
     setOpen(false)
   }
 
@@ -75,10 +80,10 @@ export function ModelSelector({ models }: ModelSelectorProps) {
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="text-sm rounded-full shadow-none focus:ring-0"
+          className="text-sm rounded-full shadow-none focus:ring-0 px-2"
         >
           {selectedModel ? (
-            <div className="flex items-center space-x-1">
+            <div className="flex items-center space-x-3">
               <Image
                 src={`/providers/logos/${selectedModel.providerId}.svg`}
                 alt={selectedModel.provider}

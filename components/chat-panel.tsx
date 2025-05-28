@@ -1,9 +1,7 @@
-'use client'
-
 import { Model } from '@/lib/types/models'
 import { cn } from '@/lib/utils'
 import { Message } from 'ai'
-import { ArrowUp, ChevronDown, MessageCirclePlus, Square } from 'lucide-react'
+import { ArrowUp, ChevronDown, Mic, Square } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import Textarea from 'react-textarea-autosize'
@@ -12,7 +10,7 @@ import { EmptyScreen } from './empty-screen'
 import { ModelSelector } from './model-selector'
 import { SearchModeToggle } from './search-mode-toggle'
 import { Button } from './ui/button'
-import { IconLogo } from './ui/icons'
+import { Babe } from './ui/icons'
 
 interface ChatPanelProps {
   input: string
@@ -29,6 +27,7 @@ interface ChatPanelProps {
   showScrollToBottomButton: boolean
   /** Reference to the scroll container */
   scrollContainerRef: React.RefObject<HTMLDivElement>
+  voiceToggle: VoidFunction
 }
 
 export function ChatPanel({
@@ -43,7 +42,8 @@ export function ChatPanel({
   append,
   models,
   showScrollToBottomButton,
-  scrollContainerRef
+  scrollContainerRef,
+  voiceToggle
 }: ChatPanelProps) {
   const [showEmptyScreen, setShowEmptyScreen] = useState(false)
   const router = useRouter()
@@ -116,9 +116,9 @@ export function ChatPanel({
     >
       {messages.length === 0 && (
         <div className="mb-10 flex flex-col items-center gap-4">
-          <IconLogo className="size-12 text-muted-foreground" />
-          <p className="text-center text-3xl font-semibold">
-            How can I help you today?
+          <Babe />
+          <p className="text-center font-space text-3xl font-semibold">
+            How are you doing, babe?
           </p>
         </div>
       )}
@@ -140,7 +140,7 @@ export function ChatPanel({
           </Button>
         )}
 
-        <div className="relative flex flex-col w-full gap-2 bg-muted rounded-3xl border border-input">
+        <div className="relative flex flex-col w-full gap-2 bg-muted/80 dark:border-muted/10 rounded-3xl border border-neutral-300">
           <Textarea
             ref={inputRef}
             name="input"
@@ -149,11 +149,11 @@ export function ChatPanel({
             tabIndex={0}
             onCompositionStart={handleCompositionStart}
             onCompositionEnd={handleCompositionEnd}
-            placeholder="Ask a question..."
+            placeholder="your reply"
             spellCheck={false}
             value={input}
             disabled={isLoading || isToolInvocationInProgress()}
-            className="resize-none w-full min-h-12 bg-transparent border-0 p-4 text-sm placeholder:text-muted-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+            className="resize-none w-full min-h-12 bg-transparent font-space border-0 p-4 text-sm placeholder:text-muted-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             onChange={e => {
               handleInputChange(e)
               setShowEmptyScreen(e.target.value.length === 0)
@@ -181,22 +181,19 @@ export function ChatPanel({
           {/* Bottom menu area */}
           <div className="flex items-center justify-between p-3">
             <div className="flex items-center gap-2">
-              <ModelSelector models={models || []} />
+              <ModelSelector models={models ?? []} />
               <SearchModeToggle />
             </div>
             <div className="flex items-center gap-2">
-              {messages.length > 0 && (
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={handleNewChat}
-                  className="shrink-0 rounded-full group"
-                  type="button"
-                  disabled={isLoading || isToolInvocationInProgress()}
-                >
-                  <MessageCirclePlus className="size-4 group-hover:rotate-12 transition-all" />
-                </Button>
-              )}
+              <Button
+                size="icon"
+                onClick={voiceToggle}
+                className="shrink-0 border-blue-300 dark:border-0 border-[0.5px] rounded-full text-blue-500 group bg-blue-50 dark:bg-blue-200/10"
+                type="button"
+                disabled={isLoading || isToolInvocationInProgress()}
+              >
+                <Mic className="size-5 group-hover:text-blue-400 transition-all" />
+              </Button>
               <Button
                 type={isLoading ? 'button' : 'submit'}
                 size={'icon'}

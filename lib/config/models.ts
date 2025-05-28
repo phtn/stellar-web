@@ -1,6 +1,7 @@
 import { Model } from '@/lib/types/models'
 import { getBaseUrl } from '@/lib/utils/url'
-import defaultModels from './default-models.json'
+// import defaultModels from './default-models.json'
+import engines from './gf-models.json'
 
 export function validateModel(model: any): model is Model {
   return (
@@ -21,7 +22,7 @@ export async function getModels(): Promise<Model[]> {
     const baseUrlObj = await getBaseUrl()
 
     // Construct the models.json URL
-    const modelUrl = new URL('/config/models.json', baseUrlObj)
+    const modelUrl = new URL('/config/gf-models.json', baseUrlObj)
     console.log('Attempting to fetch models from:', modelUrl.toString())
 
     try {
@@ -60,11 +61,11 @@ export async function getModels(): Promise<Model[]> {
       )
 
       if (
-        Array.isArray(defaultModels.models) &&
-        defaultModels.models.every(validateModel)
+        Array.isArray(engines.models) &&
+        engines.models.every(validateModel)
       ) {
         console.log('Successfully loaded default models')
-        return defaultModels.models
+        return engines.models
       }
     }
   } catch (error) {
@@ -75,4 +76,3 @@ export async function getModels(): Promise<Model[]> {
   console.warn('All attempts to load models failed, returning empty array')
   return []
 }
-
