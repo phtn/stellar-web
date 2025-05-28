@@ -10,6 +10,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { ChatMessages } from './chat-messages'
 import { ChatPanel } from './chat-panel'
+import Image from 'next/image'
+import { Babe } from './ui/icons'
 
 // Define section structure
 interface ChatSection {
@@ -455,6 +457,16 @@ export function Chat({
       )}
       data-testid="full-chat"
     >
+      <div className="absolute dark:hidden z-0 opacity-40 left-0 top-0">
+        <Image
+          src={'/images/light.jpeg'}
+          width={0}
+          height={0}
+          alt=""
+          className="h-screen w-auto"
+          unoptimized
+        />
+      </div>
       <ChatMessages
         sections={sections}
         data={data}
@@ -470,7 +482,7 @@ export function Chat({
         input={input}
         handleInputChange={handleInputChange}
         handleSubmit={onSubmit}
-        isLoading={isLoading || isProcessingAudio}
+        isLoading={isLoading}
         messages={messages}
         setMessages={setMessages}
         stop={stop}
@@ -480,6 +492,7 @@ export function Chat({
         showScrollToBottomButton={!isAtBottom}
         scrollContainerRef={scrollContainerRef}
         voiceToggle={handleRecordingToggle}
+        voiceRecording={isProcessingAudio || isRecording}
       />
       <audio ref={audioRef} style={{ display: 'none' }} />
     </div>

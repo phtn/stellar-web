@@ -8,6 +8,7 @@ import {
 } from './ui/collapsible'
 import { IconLogo } from './ui/icons'
 import { Separator } from './ui/separator'
+import { Icon } from '@/lib/icons'
 
 interface CollapsibleMessageProps {
   children: React.ReactNode
@@ -38,7 +39,7 @@ export function CollapsibleMessage({
         <div className="relative flex flex-col items-center">
           <div className="w-5">
             {role === 'assistant' ? (
-              <IconLogo className="size-5" />
+              <Icon name="square-double-arrow-right" className="size-5" />
             ) : (
               <CurrentUserAvatar />
             )}

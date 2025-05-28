@@ -81,8 +81,8 @@ export const UserMessage: React.FC<UserMessageProps> = ({
               )}
             >
               <Button
-                variant="ghost"
                 size="icon"
+                variant="ghost"
                 className="rounded-full h-7 w-7"
                 onClick={handleEditClick}
               >

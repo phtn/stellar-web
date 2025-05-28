@@ -3,7 +3,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useCurrentUserImage } from '@/hooks/use-current-user-image'
 import { useCurrentUserName } from '@/hooks/use-current-user-name'
-import { User2 } from 'lucide-react'
+import { Icon } from '@/lib/icons'
 
 export const CurrentUserAvatar = () => {
   const profileImage = useCurrentUserImage()
@@ -18,11 +18,7 @@ export const CurrentUserAvatar = () => {
     <Avatar className="size-6">
       {profileImage && <AvatarImage src={profileImage} alt={initials} />}
       <AvatarFallback>
-        {initials === '?' ? (
-          <User2 size={16} className="text-muted-foreground" />
-        ) : (
-          initials
-        )}
+        <Icon name="asterisk" size={12} className="text-sky-500" />
       </AvatarFallback>
     </Avatar>
   )

@@ -1,10 +1,9 @@
-'use client'
-
 import { ChatRequestOptions } from 'ai'
 import { CollapsibleMessage } from './collapsible-message'
 import { DefaultSkeleton } from './default-skeleton'
 import { BotMessage } from './message'
 import { MessageActions } from './message-actions'
+import { Icon } from '@/lib/icons'
 
 export type AnswerSectionProps = {
   content: string
@@ -39,7 +38,13 @@ export function AnswerSection({
 
   const message = content ? (
     <div className="flex flex-col gap-1">
-      <BotMessage message={content} />
+      <div className="flex flex-row space-x-3">
+        <Icon
+          name="asterisk"
+          className="dark:text-pink-500/80 text-pink-500 size-5"
+        />
+        <BotMessage message={content} />
+      </div>
       {showActions && (
         <MessageActions
           message={content} // Keep original message content for copy

@@ -11,6 +11,7 @@ import { ModelSelector } from './model-selector'
 import { SearchModeToggle } from './search-mode-toggle'
 import { Button } from './ui/button'
 import { Babe } from './ui/icons'
+import { Icon } from '@/lib/icons'
 
 interface ChatPanelProps {
   input: string
@@ -28,6 +29,7 @@ interface ChatPanelProps {
   /** Reference to the scroll container */
   scrollContainerRef: React.RefObject<HTMLDivElement>
   voiceToggle: VoidFunction
+  voiceRecording: boolean
 }
 
 export function ChatPanel({
@@ -43,7 +45,8 @@ export function ChatPanel({
   models,
   showScrollToBottomButton,
   scrollContainerRef,
-  voiceToggle
+  voiceToggle,
+  voiceRecording
 }: ChatPanelProps) {
   const [showEmptyScreen, setShowEmptyScreen] = useState(false)
   const router = useRouter()
@@ -110,7 +113,7 @@ export function ChatPanel({
   return (
     <div
       className={cn(
-        'w-full bg-background group/form-container shrink-0',
+        'w-full relative z-10 group/form-container shrink-0',
         messages.length > 0 ? 'sticky bottom-0 px-2 pb-4' : 'px-6'
       )}
     >
@@ -188,11 +191,17 @@ export function ChatPanel({
               <Button
                 size="icon"
                 onClick={voiceToggle}
-                className="shrink-0 border-blue-300 dark:border-0 border-[0.5px] rounded-full text-blue-500 group bg-blue-50 dark:bg-blue-200/10"
+                className="shrink-0 rounded-full group bg-blue-100 dark:bg-blue-200/10"
                 type="button"
                 disabled={isLoading || isToolInvocationInProgress()}
               >
-                <Mic className="size-5 group-hover:text-blue-400 transition-all" />
+                <Icon
+                  name={voiceRecording ? 'spinners-bars-middle' : 'microphone'}
+                  className={cn(
+                    'size-6 group-hover:text-blue-300 text-blue-400',
+                    { 'size-4 text-indigo-400': voiceRecording }
+                  )}
+                />
               </Button>
               <Button
                 type={isLoading ? 'button' : 'submit'}
