@@ -10,6 +10,7 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: cohere('command-a-03-2025'),
+    temperature: 0.9,
     messages: [
       {
         role: 'system',

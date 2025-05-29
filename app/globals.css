@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+@theme {
+  --tracking-snug: -0.045em;
+  --tracking-teen: -0.05em;
+}
 @layer base {
   :root {
     --background: 0 0% 100%;

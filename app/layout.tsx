@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 import type { Metadata, Viewport } from 'next'
 import { Inter as FontSans, Space_Grotesk } from 'next/font/google'
 import './globals.css'
+import { Providers } from '@/ctx'
 
 const fontSans = FontSans({
   subsets: ['latin'],
@@ -72,24 +73,26 @@ export default async function RootLayout({
           space.variable
         )}
       >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <SidebarProvider defaultOpen>
-            <AppSidebar />
-            <div className="flex flex-col flex-1">
-              <Header user={user} />
-              <main className="flex flex-1 min-h-0">
-                <ArtifactRoot>{children}</ArtifactRoot>
-              </main>
-            </div>
-          </SidebarProvider>
-          <Toaster />
-          {/* <Analytics /> */}
-        </ThemeProvider>
+        <Providers>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <SidebarProvider defaultOpen>
+              <AppSidebar />
+              <div className="flex flex-col flex-1">
+                <Header user={user} />
+                <main className="flex flex-1 min-h-0">
+                  <ArtifactRoot>{children}</ArtifactRoot>
+                </main>
+              </div>
+            </SidebarProvider>
+            <Toaster />
+            {/* <Analytics /> */}
+          </ThemeProvider>
+        </Providers>
       </body>
     </html>
   )

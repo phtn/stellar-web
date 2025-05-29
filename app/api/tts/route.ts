@@ -4,7 +4,7 @@ const TTS_Service = {
   BASE_URL: process.env.TTS_SERVICE_URL ?? ''
 }
 const key = process.env.TTS_API_KEY ?? ''
-const reference_id = process.env.POKI ?? ''
+const reference_id = process.env.MOODY ?? ''
 
 export async function POST(req: Request): Promise<Response> {
   const { content } = await req.json()
@@ -21,8 +21,8 @@ export async function POST(req: Request): Promise<Response> {
       body: msgpack.encode({
         reference_id,
         text: content,
-        temperature: 0.2,
-        top_p: 0.8,
+        temperature: 0.3,
+        top_p: 0.9,
         normalize: true
       })
     })

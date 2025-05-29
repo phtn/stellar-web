@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/tooltip'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { cn } from '@/lib/utils/index'
+import { Icon } from '@/lib/icons'
 
 const SIDEBAR_COOKIE_NAME = 'sidebar_state'
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
@@ -286,7 +287,7 @@ const SidebarTrigger = React.forwardRef<
       }}
       {...props}
     >
-      <PanelLeft size={18} />
+      <Icon name="sidebar-duo" size={18} className="rotate-180" />
       <span className="sr-only">Toggle Sidebar</span>
     </Button>
   )

@@ -6,7 +6,7 @@
       "provider": "Stellar Girlfriends",
       "providerId": "stellar",
       "enabled": true,
-      "toolCallType": "none"
+      "toolCallType": "manual"
     }
   ]
 }

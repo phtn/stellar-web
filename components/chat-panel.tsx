@@ -1,17 +1,20 @@
+import { Icon } from '@/lib/icons'
 import { Model } from '@/lib/types/models'
 import { cn } from '@/lib/utils'
 import { Message } from 'ai'
-import { ArrowUp, ChevronDown, Mic, Square } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Textarea from 'react-textarea-autosize'
 import { useArtifact } from './artifact/artifact-context'
 import { EmptyScreen } from './empty-screen'
-import { ModelSelector } from './model-selector'
 import { SearchModeToggle } from './search-mode-toggle'
 import { Button } from './ui/button'
-import { Babe } from './ui/icons'
-import { Icon } from '@/lib/icons'
+import { Carousel, CarouselContent, CarouselItem } from './ui/carousel'
+import { ConfigCtx } from '@/ctx/config'
+import { ActionFeature, Babes } from './babes'
+import { ExtremeModeToggle } from './extreme'
 
 interface ChatPanelProps {
   input: string
@@ -110,6 +113,36 @@ export function ChatPanel({
     }
   }
 
+  const VoiceToggle = useCallback(
+    () => (
+      <Button
+        size="icon"
+        type="button"
+        onClick={voiceToggle}
+        disabled={voiceRecording}
+        className={cn(
+          'shrink-0 rounded-full border-[0.5px] border-transparent',
+          ' group bg-transparent hover:border-sky-800/20 hover:bg-background rounded-2xl',
+          'flex items-center justify-center',
+          {
+            'animate-pulse': voiceRecording
+          }
+        )}
+      >
+        <Icon
+          size={voiceRecording ? 14 : 18}
+          solid={!voiceRecording}
+          name={voiceRecording ? 'spinners-bars-scale' : 'microphone-noir'}
+          className={cn(
+            'group-hover:text-sky-950 text-neutral-500 dark:text-sky-400/80',
+            { 'text-indigo-500': voiceRecording }
+          )}
+        />
+      </Button>
+    ),
+    [voiceRecording, voiceToggle]
+  )
+
   return (
     <div
       className={cn(
@@ -117,14 +150,7 @@ export function ChatPanel({
         messages.length > 0 ? 'sticky bottom-0 px-2 pb-4' : 'px-6'
       )}
     >
-      {messages.length === 0 && (
-        <div className="mb-10 flex flex-col items-center gap-4">
-          <Babe />
-          <p className="text-center font-space text-3xl font-semibold">
-            How are you doing, babe?
-          </p>
-        </div>
-      )}
+      {messages.length === 0 && <Babes />}
       <form
         onSubmit={handleSubmit}
         className={cn('max-w-3xl w-full mx-auto relative')}
@@ -143,7 +169,7 @@ export function ChatPanel({
           </Button>
         )}
 
-        <div className="relative flex flex-col w-full gap-2 bg-muted/80 dark:border-muted/10 rounded-3xl border border-neutral-300">
+        <div className="relative flex flex-col w-full gap-2 bg-muted/40 dark:border-muted/10 rounded-3xl border-[0.5px] border-neutral-300">
           <Textarea
             ref={inputRef}
             name="input"
@@ -184,37 +210,37 @@ export function ChatPanel({
           {/* Bottom menu area */}
           <div className="flex items-center justify-between p-3">
             <div className="flex items-center gap-2">
-              <ModelSelector models={models ?? []} />
-              <SearchModeToggle />
+              {/* <ModelSelector models={models ?? []} /> */}
+              <ActionFeature
+                icon="phone-bold"
+                label="Call"
+                fn={() => console.log('')}
+              />
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-4">
+              <VoiceToggle />
               <Button
-                size="icon"
-                onClick={voiceToggle}
-                className="shrink-0 rounded-full group bg-blue-100 dark:bg-blue-200/10"
-                type="button"
-                disabled={isLoading || isToolInvocationInProgress()}
-              >
-                <Icon
-                  name={voiceRecording ? 'spinners-bars-middle' : 'microphone'}
-                  className={cn(
-                    'size-6 group-hover:text-blue-300 text-blue-400',
-                    { 'size-4 text-indigo-400': voiceRecording }
-                  )}
-                />
-              </Button>
-              <Button
-                type={isLoading ? 'button' : 'submit'}
                 size={'icon'}
-                variant={'outline'}
-                className={cn(isLoading && 'animate-pulse', 'rounded-full')}
+                type={isLoading ? 'button' : 'submit'}
+                className={cn(
+                  isLoading && 'animate-pulse',
+                  'rounded-2xl bg-primary/80'
+                )}
                 disabled={
                   (input.length === 0 && !isLoading) ||
                   isToolInvocationInProgress()
                 }
                 onClick={isLoading ? stop : undefined}
               >
-                {isLoading ? <Square size={20} /> : <ArrowUp size={20} />}
+                {isLoading ? (
+                  <Icon name="spinners-ring" size={16} />
+                ) : (
+                  <Icon
+                    name="arrow-up-broken"
+                    size={16}
+                    className="text-teal-200 dark:text-lime-600"
+                  />
+                )}
               </Button>
             </div>
           </div>

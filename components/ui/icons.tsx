@@ -31,11 +31,12 @@ function IconLogo({ className, ...props }: React.ComponentProps<'svg'>) {
 
 const Babe = () => (
   <Image
-    src="https://www.svgrepo.com/show/317641/national-female.svg"
+    // src="https://www.svgrepo.com/show/317641/national-female.svg"
+    src="/images/ellie.svg"
     alt="National Female SVG File"
     width={0}
     height={0}
-    className={cn('size-24')}
+    className={cn('size-80')}
   />
 )
 

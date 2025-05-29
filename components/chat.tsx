@@ -69,7 +69,7 @@ export function Chat({
   query?: string
   models?: Model[]
 }) {
-  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null)
   const [isAtBottom, setIsAtBottom] = useState(true)
   const audioRef = useRef<HTMLAudioElement>(null)
   const [isGeneratingAudio, setIsGeneratingAudio] = useState<boolean>(false)

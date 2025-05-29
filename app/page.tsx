@@ -5,8 +5,5 @@ import { generateId } from 'ai'
 export default async function Page() {
   const id = generateId()
   const models = await getModels()
-  if (models) {
-    console.log(models)
-  }
   return <Chat id={id} models={models} />
 }

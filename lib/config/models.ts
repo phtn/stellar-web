@@ -22,7 +22,7 @@ export async function getModels(): Promise<Model[]> {
     const baseUrlObj = await getBaseUrl()
 
     // Construct the models.json URL
-    const modelUrl = new URL('/config/gf-models.json', baseUrlObj)
+    const modelUrl = new URL('/config/models.json', baseUrlObj)
     console.log('Attempting to fetch models from:', modelUrl.toString())
 
     try {

@@ -10,9 +10,9 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'lh3.googleusercontent.com',
+        hostname: 'firebasestorage.googleapis.com',
         port: '',
-        pathname: '/a/**' // Google user content often follows this pattern
+        pathname: '/v0/**' // Google user content often follows this pattern
       }
     ]
   }
