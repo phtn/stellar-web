@@ -1,6 +1,6 @@
 {
-  "name": "morphic",
-  "version": "0.1.2",
+  "name": "valkyrie",
+  "version": "0.1.4",
   "private": true,
   "license": "Apache-2.0",
   "scripts": {
