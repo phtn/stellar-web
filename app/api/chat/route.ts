@@ -1,4 +1,4 @@
-import { gf } from '@/instructions/gf'
+import { gf } from '../../../instructions/gf'
 import { cohere } from '@ai-sdk/cohere'
 import { streamText } from 'ai'
 
