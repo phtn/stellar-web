@@ -1,11 +1,8 @@
-import {
-  EventHandler,
-  use,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState
-} from 'react'
+import { ConfigCtx } from '@/ctx/config'
+import { Icon, IconName } from '@/lib/icons'
+import { cn } from '@/lib/utils'
+import Image from 'next/image'
+import { use, useEffect, useMemo, useState } from 'react'
 import {
   Carousel,
   CarouselApi,
@@ -14,10 +11,7 @@ import {
   CarouselNext,
   CarouselPrevious
 } from './ui/carousel'
-import { ConfigCtx } from '@/ctx/config'
-import Image from 'next/image'
-import { Icon, IconName } from '@/lib/icons'
-import { cn } from '@/lib/utils'
+import { Toggle } from './ui/toggle'
 
 interface IBabe {
   id: string
@@ -85,7 +79,7 @@ export const Babes = () => {
           </span>
         </div>
         <ActionFeature
-          label="Voice"
+          label="Voice Chat"
           icon="voice-solid"
           fn={() => console.log('babes.tsx', 'voice')}
         />
@@ -122,14 +116,18 @@ export const Babes = () => {
       <div className="flex items-center justify-center space-x-6 h-16">
         <Icon
           name="quotes"
-          size={28}
-          className="rotate-180 opacity-50 text-teal-500"
+          size={32}
+          className="rotate-180 opacity-50 text-cyan-300"
         />
-        <p className="text-center font-space text-base italic text-neutral-500">
+        <p className="text-center font-space text-base italic text-neutral-400">
           {babes[current - 1]?.greeting}
         </p>
 
-        <Icon name="quotes" size={28} className="opacity-10" />
+        <Icon
+          name="quotes"
+          size={24}
+          className="opacity-15 text-teal-100 blur-[1.5px]"
+        />
       </div>
     </div>
   )
@@ -138,10 +136,20 @@ export const Babes = () => {
 export const Pro = () => (
   <div
     className={cn(
-      'bg-slate-300 text-teal-950 h-[11px] border-0 border-red-500 rounded-tl-[2.75px] rounded-e-xl flex items-center justify-center'
+      'bg-stone-950 h-[12.5px]',
+      'flex items-center justify-center overflow-hidden',
+      'border border-b-0 border-stone-950',
+      'rounded-ss-[3px] rounded-e-xl'
     )}
   >
-    <span className="ps-[1.5px] pe-[2.25px] font-space pb-[2.5px] text-lg scale-105 -tracking-wide">
+    <span
+      className={cn(
+        'font-space text-lg scale-105 -tracking-wide',
+        'ps-[1px] pe-[2.25px] pb-[2.5px] text-transparent bg-clip-text',
+        'bg-gradient-to-r from-indigo-400 via-cyan-300 to-teal-500',
+        ''
+      )}
+    >
       pro
     </span>
   </div>
@@ -151,13 +159,41 @@ interface ActionFeatureProps {
   label: string
   icon: IconName
   fn: VoidFunction
+  pressed?: boolean
 }
 export const ActionFeature = ({ icon, label, fn }: ActionFeatureProps) => (
   <button
     onClick={fn}
-    className="font-space font-medium rounded-full flex items-center justify-center space-x-2 border border-primary bg-primary ps-1 pe-1.5 text-sm py-1 text-teal-200 dark:bg-foreground/15 dark:border-foreground/10"
+    className={cn(
+      'font-space font-medium rounded-full flex items-center justify-center space-x-2 border border-primary bg-primary ps-1 pe-1.5 text-sm py-1 text-teal-200 dark:bg-foreground/15 dark:border-foreground/10'
+    )}
   >
-    <Icon name={icon} size={16} /> <span>{label}</span>
+    <Icon name={icon} size={14} />
+    <span className="tracking-tight">{label}</span>
     <Pro />
   </button>
+)
+
+export const ToggleFeature = ({
+  icon,
+  label,
+  fn,
+  pressed = false
+}: ActionFeatureProps) => (
+  <Toggle
+    pressed={pressed}
+    onClick={fn}
+    className={cn(
+      'h-9 flex items-center justify-center self-end',
+      'rounded-full border border-primary space-x-0.5',
+      'dark:bg-zinc-950/40 dark:border-foreground/10',
+      'bg-primary px-3 hover:bg-zinc-700'
+    )}
+  >
+    {/* <Icon name={icon} size={14} className={cn('text-background')} /> */}
+    <span className="font-space font-light tracking-wide text-sm text-teal-100">
+      {label}
+    </span>
+    {/* <Pro /> */}
+  </Toggle>
 )

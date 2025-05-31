@@ -1,3 +1,4 @@
+import { ToolInvocationContent } from '@/components/artifact/tool-invocation-content'
 import { type Model } from '@/lib/types/models'
 import {
   convertToCoreMessages,
@@ -56,53 +57,57 @@ export function getDefaultModelId(models: Model[]): string {
   return createModelId(models[0])
 }
 
-function addToolMessageToChat({
-  toolMessage,
-  messages
-}: {
-  toolMessage: CoreToolMessage
+function isToolInvocation(part: unknown): part is ToolInvocation {
+  return (
+    typeof part === 'object' &&
+    part !== null &&
+    'state' in part &&
+    'toolCallId' in part &&
+    'toolName' in part &&
+    // ToolInvocation is either a call (has 'args') or a result (has 'result')
+    ('args' in part || 'result' in part)
+  )
+}
+
+interface IAddToolMessage {
+  toolMessage?: CoreToolMessage
   messages: Array<Message>
-}): Array<Message> {
+}
+function addToolMessageToChat({ messages }: IAddToolMessage) {
   return messages.map(message => {
-    if (message.toolInvocations) {
-      return {
-        ...message,
-        toolInvocations: message.toolInvocations.map(toolInvocation => {
-          const toolResult = toolMessage.content.find(
-            tool => tool.toolCallId === toolInvocation.toolCallId
-          )
-
-          if (toolResult) {
-            return {
-              ...toolInvocation,
-              state: 'result',
-              result: toolResult.result
-            }
-          }
-
-          return toolInvocation
-        })
-      }
+    if (message.parts) {
+      const toolInvocations = message.parts.reduce<ToolInvocation[]>(
+        (acc, part) => {
+          if (isToolInvocation(part)) acc.push(part)
+          return acc
+        },
+        []
+      )
+      return toolInvocations.length > 0
+        ? { ...message, toolInvocations }
+        : message
     }
 
     return message
   })
 }
 
-export function convertToUIMessages(
-  messages: Array<ExtendedCoreMessage>
-): Array<Message> {
+export function convertToUIMessages(messages: Array<ExtendedCoreMessage>) {
   let pendingAnnotations: JSONValue[] = []
   let pendingReasoning: string | undefined = undefined
   let pendingReasoningTime: number | undefined = undefined
 
-  return messages.reduce((chatMessages: Array<Message>, message) => {
+  return messages.reduce((chatMessages: Message[], message) => {
     // Handle tool messages
     if (message.role === 'tool') {
-      return addToolMessageToChat({
+      const updatedMessages = addToolMessageToChat({
         toolMessage: message as CoreToolMessage,
         messages: chatMessages
       })
+      // Replace the contents of chatMessages with updatedMessages
+      chatMessages.length = 0
+      chatMessages.push(...updatedMessages)
+      return chatMessages
     }
 
     // Data messages are used to capture annotations, including reasoning.
@@ -139,7 +144,7 @@ export function convertToUIMessages(
 
     // Build the text content and tool invocations from message.content.
     let textContent = ''
-    let toolInvocations: Array<ToolInvocation> = []
+    let toolInvocations = []
 
     if (message.content) {
       if (typeof message.content === 'string') {
@@ -227,16 +232,16 @@ export function convertToExtendedCoreMessages(
     }
 
     // Convert reasoning to data message with unified structure (including time)
-    if (message.reasoning) {
+    if (message.parts) {
       const reasoningTime = (message as any).reasoningTime ?? 0
       const reasoningData =
-        typeof message.reasoning === 'string'
-          ? { reasoning: message.reasoning, time: reasoningTime }
+        typeof message.parts === typeof ToolInvocationContent
+          ? { reasoning: message.parts, time: reasoningTime }
           : {
-              ...(message.reasoning as Record<string, unknown>),
+              ...message.parts,
               time:
                 (message as any).reasoningTime ??
-                (message.reasoning as any).time ??
+                (message.parts as any).time ??
                 0
             }
       result.push({

@@ -1,20 +1,15 @@
-import { Icon } from '@/lib/icons'
 import { Model } from '@/lib/types/models'
 import { cn } from '@/lib/utils'
 import { Message } from 'ai'
 import { ChevronDown } from 'lucide-react'
-import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Textarea from 'react-textarea-autosize'
 import { useArtifact } from './artifact/artifact-context'
+import { Babes, ToggleFeature } from './babes'
 import { EmptyScreen } from './empty-screen'
-import { SearchModeToggle } from './search-mode-toggle'
+import { IconBtn } from './icon-btn'
 import { Button } from './ui/button'
-import { Carousel, CarouselContent, CarouselItem } from './ui/carousel'
-import { ConfigCtx } from '@/ctx/config'
-import { ActionFeature, Babes } from './babes'
-import { ExtremeModeToggle } from './extreme'
 
 interface ChatPanelProps {
   input: string
@@ -41,11 +36,9 @@ export function ChatPanel({
   handleSubmit,
   isLoading,
   messages,
-  setMessages,
   query,
   stop,
   append,
-  models,
   showScrollToBottomButton,
   scrollContainerRef,
   voiceToggle,
@@ -69,13 +62,13 @@ export function ChatPanel({
     }, 300)
   }
 
-  const handleNewChat = () => {
-    setMessages([])
-    closeArtifact()
-    router.push('/')
-  }
+  // const handleNewChat = () => {
+  //   setMessages([])
+  //   closeArtifact()
+  //   router.push('/')
+  // }
 
-  const isToolInvocationInProgress = () => {
+  const isToolInvocationInProgress = useCallback(() => {
     if (!messages.length) return false
 
     const lastMessage = messages[messages.length - 1]
@@ -88,7 +81,7 @@ export function ChatPanel({
       lastPart?.type === 'tool-invocation' &&
       lastPart?.toolInvocation?.state === 'call'
     )
-  }
+  }, [messages])
 
   // if query is not empty, submit the query
   useEffect(() => {
@@ -115,32 +108,42 @@ export function ChatPanel({
 
   const VoiceToggle = useCallback(
     () => (
-      <Button
-        size="icon"
-        type="button"
-        onClick={voiceToggle}
-        disabled={voiceRecording}
-        className={cn(
-          'shrink-0 rounded-full border-[0.5px] border-transparent',
-          ' group bg-transparent hover:border-sky-800/20 hover:bg-background rounded-2xl',
-          'flex items-center justify-center',
-          {
-            'animate-pulse': voiceRecording
-          }
-        )}
-      >
-        <Icon
-          size={voiceRecording ? 14 : 18}
-          solid={!voiceRecording}
-          name={voiceRecording ? 'spinners-bars-scale' : 'microphone-noir'}
-          className={cn(
-            'group-hover:text-sky-950 text-neutral-500 dark:text-sky-400/80',
-            { 'text-indigo-500': voiceRecording }
-          )}
-        />
-      </Button>
+      <IconBtn
+        btnProps={{
+          onClick: voiceToggle,
+          disabled: voiceRecording
+        }}
+        solid={!voiceRecording}
+        iconStyle={
+          voiceRecording
+            ? 'size-3.5 text-indigo-500 dark:text-indigo-500'
+            : undefined
+        }
+        withShadow={voiceRecording}
+        icon={voiceRecording ? 'spinners-bars-middle' : 'microphone-noir'}
+      />
     ),
     [voiceRecording, voiceToggle]
+  )
+
+  const SendMessage = () => (
+    <IconBtn
+      btnProps={{
+        onClick: isLoading ? stop : undefined,
+        disabled:
+          (input.length === 0 && !isLoading) || isToolInvocationInProgress(),
+        type: isLoading ? 'button' : 'submit'
+      }}
+      solid={!voiceRecording}
+      iconStyle={cn(
+        'text-teal-200 dark:text-teal-200',
+        'disabled:text-foreground/80 disabled:bg-foreground/20 rounded-xl'
+      )}
+      withShadow
+      icon={isLoading ? 'spinners-ring' : 'arrow-up-broken'}
+      shadowStyle="text-zinc-950"
+      animated
+    />
   )
 
   return (
@@ -158,29 +161,36 @@ export function ChatPanel({
         {/* Scroll to bottom button - only shown when showScrollToBottomButton is true */}
         {showScrollToBottomButton && messages.length > 0 && (
           <Button
+            size="icon"
             type="button"
             variant="outline"
-            size="icon"
-            className="absolute -top-10 right-4 z-20 size-8 rounded-full shadow-md"
-            onClick={handleScrollToBottom}
             title="Scroll to bottom"
+            onClick={handleScrollToBottom}
+            className="absolute -top-10 right-4 z-20 size-8 rounded-full shadow-md"
           >
             <ChevronDown size={16} />
           </Button>
         )}
 
-        <div className="relative flex flex-col w-full gap-2 bg-muted/40 dark:border-muted/10 rounded-3xl border-[0.5px] border-neutral-300">
+        <div
+          className={cn(
+            'relative flex flex-col w-full gap-2',
+            'dark:bg-muted/70 bg-muted/40',
+            'rounded-3xl border-[0.75px] dark:border-muted/10 border-neutral-300',
+            { 'border-neutral-400': showEmptyScreen }
+          )}
+        >
           <Textarea
-            ref={inputRef}
-            name="input"
             rows={2}
             maxRows={5}
+            name="input"
             tabIndex={0}
-            onCompositionStart={handleCompositionStart}
-            onCompositionEnd={handleCompositionEnd}
-            placeholder="your reply"
-            spellCheck={false}
             value={input}
+            ref={inputRef}
+            spellCheck={false}
+            placeholder="your reply"
+            onCompositionEnd={handleCompositionEnd}
+            onCompositionStart={handleCompositionStart}
             disabled={isLoading || isToolInvocationInProgress()}
             className="resize-none w-full min-h-12 bg-transparent font-space border-0 p-4 text-sm placeholder:text-muted-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             onChange={e => {
@@ -211,37 +221,25 @@ export function ChatPanel({
           <div className="flex items-center justify-between p-3">
             <div className="flex items-center gap-2">
               {/* <ModelSelector models={models ?? []} /> */}
-              <ActionFeature
+              <ToggleFeature
                 icon="phone-bold"
-                label="Call"
+                label="Search"
+                fn={() => console.log('')}
+              />
+              <ToggleFeature
+                icon="phone-bold"
+                label="Think"
+                fn={() => console.log('')}
+              />
+              <ToggleFeature
+                icon="phone-bold"
+                label="Code"
                 fn={() => console.log('')}
               />
             </div>
             <div className="flex items-center gap-4">
               <VoiceToggle />
-              <Button
-                size={'icon'}
-                type={isLoading ? 'button' : 'submit'}
-                className={cn(
-                  isLoading && 'animate-pulse',
-                  'rounded-2xl bg-primary/80'
-                )}
-                disabled={
-                  (input.length === 0 && !isLoading) ||
-                  isToolInvocationInProgress()
-                }
-                onClick={isLoading ? stop : undefined}
-              >
-                {isLoading ? (
-                  <Icon name="spinners-ring" size={16} />
-                ) : (
-                  <Icon
-                    name="arrow-up-broken"
-                    size={16}
-                    className="text-teal-200 dark:text-lime-600"
-                  />
-                )}
-              </Button>
+              <SendMessage />
             </div>
           </div>
         </div>
