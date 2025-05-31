@@ -1,6 +1,6 @@
 import { anthropic } from '@ai-sdk/anthropic'
-import { cohere, createCohere } from '@ai-sdk/cohere'
 import { createAzure } from '@ai-sdk/azure'
+import { cohere, createCohere } from '@ai-sdk/cohere'
 import { deepseek } from '@ai-sdk/deepseek'
 import { createFireworks, fireworks } from '@ai-sdk/fireworks'
 import { google } from '@ai-sdk/google'
@@ -8,9 +8,9 @@ import { groq } from '@ai-sdk/groq'
 import { createOpenAI, openai } from '@ai-sdk/openai'
 import { xai } from '@ai-sdk/xai'
 import {
-  createProviderRegistry,
-  extractReasoningMiddleware,
-  wrapLanguageModel
+    createProviderRegistry,
+    extractReasoningMiddleware,
+    wrapLanguageModel
 } from 'ai'
 import { createOllama } from 'ollama-ai-provider'
 
@@ -89,9 +89,7 @@ export function getModel(model: string) {
   }
 
   if (model.includes('ellie')) {
-    return {
-      model: cohere('command-a-03-2025')
-    }
+    return cohere('command-a-03-2025')
   }
 
   return registry.languageModel(
