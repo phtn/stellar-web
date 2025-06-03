@@ -19,6 +19,7 @@ interface RenderMessageProps {
     messageId: string,
     options?: ChatRequestOptions
   ) => Promise<string | null | undefined>
+  isTTSPlaying?: boolean
 }
 
 export function RenderMessage({
@@ -30,7 +31,8 @@ export function RenderMessage({
   chatId,
   addToolResult,
   onUpdateMessage,
-  reload
+  reload,
+  isTTSPlaying
 }: RenderMessageProps) {
   const relatedQuestions = useMemo(
     () =>
@@ -49,9 +51,9 @@ export function RenderMessage({
       ) as unknown as Array<{
         data: {
           args: string
-          toolCallId: string
           toolName: string
           result?: string
+          toolCallId: string
           state: 'call' | 'result'
         }
       }>) || []
@@ -104,8 +106,8 @@ export function RenderMessage({
   if (message.role === 'user') {
     return (
       <UserMessage
-        message={message.content}
         messageId={messageId}
+        message={message.content}
         onUpdateMessage={onUpdateMessage}
       />
     )
@@ -131,25 +133,26 @@ export function RenderMessage({
           case 'tool-invocation':
             return (
               <ToolSection
-                key={`${messageId}-tool-${index}`}
                 tool={part.toolInvocation}
+                addToolResult={addToolResult}
+                key={`${messageId}-tool-${index}`}
                 isOpen={getIsOpen(part.toolInvocation.toolCallId)}
                 onOpenChange={handleOpenChange(part.toolInvocation.toolCallId)}
-                addToolResult={addToolResult}
               />
             )
           case 'text':
             // Only show actions if this is the last part and it's a text part
             return (
               <AnswerSection
-                key={`${messageId}-text-${index}`}
-                content={part.text}
-                isOpen={getIsOpen(messageId)}
-                onOpenChange={handleOpenChange(messageId)}
                 chatId={chatId}
-                showActions={isLastPart}
-                messageId={messageId}
                 reload={reload}
+                content={part.text}
+                messageId={messageId}
+                showActions={isLastPart}
+                isTTSPlaying={isTTSPlaying}
+                isOpen={getIsOpen(messageId)}
+                key={`${messageId}-text-${index}`}
+                onOpenChange={handleOpenChange(messageId)}
               />
             )
           case 'reasoning':
@@ -157,8 +160,8 @@ export function RenderMessage({
               <ReasoningSection
                 key={`${messageId}-reasoning-${index}`}
                 content={{
-                  reasoning: part.reasoning,
-                  time: reasoningTime
+                  time: reasoningTime,
+                  reasoning: part.reasoning
                 }}
                 isOpen={getIsOpen(messageId)}
                 onOpenChange={handleOpenChange(messageId)}
@@ -171,8 +174,8 @@ export function RenderMessage({
       })}
       {relatedQuestions && relatedQuestions.length > 0 && (
         <RelatedQuestions
-          annotations={relatedQuestions as JSONValue[]}
           onQuerySelect={onQuerySelect}
+          annotations={relatedQuestions as JSONValue[]}
           isOpen={getIsOpen(`${messageId}-related`)}
           onOpenChange={handleOpenChange(`${messageId}-related`)}
         />

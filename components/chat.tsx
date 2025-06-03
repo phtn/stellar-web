@@ -1,59 +1,25 @@
 'use client'
 
 import { CHAT_ID } from '@/lib/constants'
+import { useVoiceSettings } from '@/lib/store/voiceSettings'
 import { Model } from '@/lib/types/models'
 import { cn } from '@/lib/utils'
+import { SpeechToTextService } from '@/services/stt'
 import { useChat } from '@ai-sdk/react'
 import { ChatRequestOptions } from 'ai'
 import { Message } from 'ai/react'
+import Image from 'next/image'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { ChatMessages } from './chat-messages'
 import { ChatPanel } from './chat-panel'
-import Image from 'next/image'
-import { Babe } from './ui/icons'
+import { cleanForTTS } from './message'
 
 // Define section structure
 interface ChatSection {
   id: string // User message ID
   userMessage: Message
   assistantMessages: Message[]
-}
-
-interface SpeechRecognitionEvent extends Event {
-  results: SpeechRecognitionResultList
-  resultIndex: number
-}
-
-interface SpeechRecognitionErrorEvent extends Event {
-  error: string
-  message: string
-}
-
-interface SpeechRecognition extends EventTarget {
-  continuous: boolean
-  interimResults: boolean
-  lang: string
-  start(): void
-  stop(): void
-  abort(): void
-  addEventListener(
-    type: 'result',
-    listener: (event: SpeechRecognitionEvent) => void
-  ): void
-  addEventListener(
-    type: 'error',
-    listener: (event: SpeechRecognitionErrorEvent) => void
-  ): void
-  addEventListener(type: 'end', listener: () => void): void
-  addEventListener(type: 'start', listener: () => void): void
-}
-
-declare global {
-  interface Window {
-    SpeechRecognition: new () => SpeechRecognition
-    webkitSpeechRecognition: new () => SpeechRecognition
-  }
 }
 
 type RecordingMethod = 'browser' | 'manual'
@@ -73,14 +39,15 @@ export function Chat({
   const [isAtBottom, setIsAtBottom] = useState(true)
   const audioRef = useRef<HTMLAudioElement>(null)
   const [isGeneratingAudio, setIsGeneratingAudio] = useState<boolean>(false)
+  const [isTTSPlaying, setIsTTSPlaying] = useState(false)
 
   const [isRecording, setIsRecording] = useState<boolean>(false)
   const [recordingMethod] = useState<RecordingMethod>('browser')
   const [transcript, setTranscript] = useState<string>('')
   const [isProcessingAudio, setIsProcessingAudio] = useState<boolean>(false)
 
-  // Browser Speech Recognition
-  const recognitionRef = useRef<SpeechRecognition | null>(null)
+  // Browser Speech Recognition (now using SpeechToTextService)
+  const sttServiceRef = useRef<SpeechToTextService | null>(null)
 
   // Manual recording
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
@@ -122,13 +89,17 @@ export function Chat({
     experimental_throttle: 100
   })
 
+  const { voiceEngine, outputMode } = useVoiceSettings()
+
   const generateSpeech = useCallback(async (content: string): Promise<void> => {
     setIsGeneratingAudio(true)
+    setIsTTSPlaying(true)
     try {
-      const response = await fetch('/api/tts', {
+      const cleanedContent = cleanForTTS(content)
+      const response = await fetch('/api/tts/playht', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content })
+        body: JSON.stringify({ content: cleanedContent, voiceEngine, outputMode })
       })
 
       if (!response.ok) {
@@ -146,16 +117,20 @@ export function Chat({
           'ended',
           () => {
             URL.revokeObjectURL(audioUrl)
+            setIsTTSPlaying(false)
           },
           { once: true }
         )
+      } else {
+        setIsTTSPlaying(false)
       }
     } catch (error) {
       console.error('Audio generation/playback failed:', error)
+      setIsTTSPlaying(false)
     } finally {
       setIsGeneratingAudio(false)
     }
-  }, [])
+  }, [voiceEngine, outputMode])
 
   // ASR
   useEffect(() => {
@@ -163,67 +138,43 @@ export function Chat({
       typeof window !== 'undefined' &&
       (window.SpeechRecognition || window.webkitSpeechRecognition)
     ) {
-      const SpeechRecognition =
-        window.SpeechRecognition || window.webkitSpeechRecognition
-      recognitionRef.current = new SpeechRecognition()
-
-      if (recognitionRef.current) {
-        recognitionRef.current.continuous = false
-        recognitionRef.current.interimResults = true
-        recognitionRef.current.lang = 'en-US'
-
-        recognitionRef.current.addEventListener(
-          'result',
-          (event: SpeechRecognitionEvent) => {
-            let finalTranscript = ''
-            let interimTranscript = ''
-
-            for (let i = event.resultIndex; i < event.results.length; i++) {
-              const transcript = event.results[i][0].transcript
-              if (event.results[i].isFinal) {
-                finalTranscript += transcript
-              } else {
-                interimTranscript += transcript
-              }
-            }
-
-            if (finalTranscript) {
-              setTranscript('')
-              setInput(prev => prev + finalTranscript + '. ')
-              setIsRecording(false)
-            } else {
-              setTranscript(interimTranscript ?? transcript + '. ')
-            }
-          }
-        )
-
-        recognitionRef.current.addEventListener(
-          'error',
-          (event: SpeechRecognitionErrorEvent) => {
-            console.log('Speech recognition error:', event.error)
-            setIsRecording(false)
+      sttServiceRef.current = new SpeechToTextService({
+        lang: 'en-US',
+        interimResults: true,
+        continuous: false,
+        maxDurationMs: 10000, // 10 seconds max recording duration
+        onResult: (finalTranscript, interimTranscript) => {
+          if (finalTranscript) {
             setTranscript('')
+            setInput(prev => prev + finalTranscript + '. ')
+            setIsRecording(false)
+          } else {
+            setTranscript(interimTranscript)
           }
-        )
-
-        recognitionRef.current.addEventListener('end', () => {
+        },
+        onError: (error) => {
+          console.log('Speech recognition error:', error)
           setIsRecording(false)
           setTranscript('')
-        })
-      }
+        },
+        onEnd: () => {
+          setIsRecording(false)
+          setTranscript('')
+        }
+      })
     }
-  }, [setInput, transcript])
+  }, [setInput])
 
   const startBrowserRecording = (): void => {
-    if (recognitionRef.current && !isRecording) {
+    if (sttServiceRef.current && !isRecording) {
       setIsRecording(true)
       setTranscript('')
-      recognitionRef.current.start()
+      sttServiceRef.current.start()
     }
   }
   const stopBrowserRecording = (): void => {
-    if (recognitionRef.current && isRecording) {
-      recognitionRef.current.stop()
+    if (sttServiceRef.current && isRecording) {
+      sttServiceRef.current.stop()
     }
   }
 
@@ -477,6 +428,7 @@ export function Chat({
         scrollContainerRef={scrollContainerRef}
         onUpdateMessage={handleUpdateAndReloadMessage}
         reload={handleReloadFrom}
+        isTTSPlaying={isTTSPlaying}
       />
       <ChatPanel
         input={input}

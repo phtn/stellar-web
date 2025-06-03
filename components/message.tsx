@@ -19,11 +19,11 @@ export function BotMessage({
 }) {
   // Check if the content contains LaTeX patterns
   const containsLaTeX = /\\\[([\s\S]*?)\\\]|\\\(([\s\S]*?)\\\)/.test(
-    message || ''
+    message ?? ''
   )
 
   // Modify the content to render LaTeX equations if LaTeX patterns are found
-  const processedData = preprocessLaTeX(message || '')
+  const processedData = preprocessLaTeX(message ?? '')
 
   if (containsLaTeX) {
     return (
@@ -34,7 +34,7 @@ export function BotMessage({
         ]}
         remarkPlugins={[remarkGfm, remarkMath]}
         className={cn(
-          'prose-sm prose-neutral prose-a:text-accent-foreground/50',
+          'prose-sm prose-neutral prose-a:text-accent-foreground/80',
           className
         )}
       >
@@ -48,7 +48,7 @@ export function BotMessage({
       rehypePlugins={[[rehypeExternalLinks, { target: '_blank' }]]}
       remarkPlugins={[remarkGfm]}
       className={cn(
-        'prose-sm prose-neutral prose-a:text-accent-foreground/50',
+        'prose-sm prose-neutral prose-a:text-accent-foreground/50 text-base font-space',
         className
       )}
       components={{
@@ -76,7 +76,7 @@ export function BotMessage({
           return (
             <CodeBlock
               key={Math.random()}
-              language={(match && match[1]) || ''}
+              language={(match && match[1]) ?? ''}
               value={String(children).replace(/\n$/, '')}
               {...props}
             />
@@ -102,4 +102,27 @@ const preprocessLaTeX = (content: string) => {
     (_, equation) => `$${equation}$`
   )
   return inlineProcessedContent
+}
+
+// Utility to clean message for TTS (removes code, LaTeX, emojis, emotion tags)
+export function cleanForTTS(message: string): string {
+  // Remove code blocks (```...```)
+  let cleaned = message.replace(/```[\s\S]*?```/g, '')
+  // Remove inline code (`...`)
+  cleaned = cleaned.replace(/`[^`]*`/g, '')
+  // Remove LaTeX/math
+  cleaned = cleaned.replace(
+    /(\$\$[\s\S]*?\$\$|\$[^$]*\$|\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\))/g,
+    ''
+  )
+  // Remove emojis
+  cleaned = cleaned.replace(
+    /([\u2700-\u27BF]|[\uE000-\uF8FF]|[\uD83C-\uDBFF\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83D[\uDE00-\uDE4F])/g,
+    ''
+  )
+  // Remove custom emotion tags (if any)
+  cleaned = cleaned.replace(/<emotion>[\s\S]*?<\/emotion>/g, '')
+  // Optionally, trim and collapse whitespace
+  cleaned = cleaned.replace(/\s+/g, ' ').trim()
+  return cleaned
 }

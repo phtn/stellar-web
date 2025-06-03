@@ -1,3 +1,6 @@
+import { viewport } from '@/app/layout'
+import { symbol } from 'zod'
+
 export const icons = {
   abacus: {
     symbol: `<path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M2.5 12c0-4.478 0-6.718 1.391-8.109S7.521 2.5 12 2.5c4.478 0 6.718 0 8.109 1.391S21.5 7.521 21.5 12c0 4.478 0 6.718-1.391 8.109S16.479 21.5 12 21.5c-4.478 0-6.718 0-8.109-1.391S2.5 16.479 2.5 12M6 9h3.5M17 9h1m-6-1v2m2.5-2v2m3.5 5h-6m-5 0H6m3.5-1v2" color="currentColor"></path>`,
@@ -333,7 +336,7 @@ export const icons = {
     set: `solar`
   },
   'arrow-up-broken': {
-    symbol: `<path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m12 4l-6 6m6-6l6 6m-6-6v10.5m0 5.5v-2.5"></path>`,
+    symbol: `<path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m12 4l-6 6m6-6l6 6m-6-6v10.5m0 5.5v-2.5"></path>`,
     viewBox: `0 0 24 24`,
     set: `solar`
   },
@@ -368,7 +371,7 @@ export const icons = {
     set: `svg`
   },
   'voice-solid': {
-    symbol: `<defs><mask id="ipSVoiceOne0"><g fill="none" stroke-width="4"><path fill="#fff" stroke="#fff" d="M24 44c11.046 0 20-8.954 20-20S35.046 4 24 4S4 12.954 4 24s8.954 20 20 20Z"></path><path stroke="#000" stroke-linecap="round" d="M30 18v12m6-8v4m-18-8v12m-6-8v4m12-12v20"></path></g></mask></defs><path fill="currentColor" d="M0 0h48v48H0z" mask="url(#ipSVoiceOne0)"></path>`,
+    symbol: `<defs><mask id="ipSVoiceOne0"><g fill="none" stroke-width="3" stroke="1"><path fill="white" stroke-width="8" stroke="white" d="M24 44c11.046 0 20-8.954 20-20S35.046 4 24 4S4 12.954 4 24s8.954 20 20 20Z"></path><path stroke="#000" stroke-linecap="round" d="M30 18v12m6-8v4m-18-8v12m-6-8v4m12-12v20"></path></g></mask></defs><path fill="currentColor" stroke="none" d="M0 0h48v48H0z" mask="url(#ipSVoiceOne0)"></path>`,
     viewBox: `0 0 48 48`,
     set: `icon`
   },
@@ -386,7 +389,43 @@ export const icons = {
     symbol: `<path fill="currentColor" stroke="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="0" d="M12 3c7.2 0 9 1.8 9 9s-1.8 9-9 9s-9-1.8-9-9s1.8-9 9-9"></path>`,
     viewBox: `0 0 24 24`,
     set: `lucide`
+  },
+  'voice-enabled': {
+    symbol: `<path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v16M8 8v6m12-5v4M4 9v4m12-7v9m-.5 4.5l2 2l5-5"></path>`,
+    viewBox: `0 0 24 24`,
+    set: `iconoir`
+  },
+  'ai-voice': {
+    symbol:
+      '<path  stroke-width="0" d="M2.00001 12C2.00001 6.477 6.47701 2 12 2C17.523 2 22 6.477 22 12C22 17.523 17.523 22 12 22H4.41422C3.52332 22 3.07715 20.9229 3.70711 20.2929L4.92901 19.071C3.99909 18.1434 3.26162 17.0412 2.75897 15.8278C2.25631 14.6143 1.99839 13.3135 2.00001 12ZM6.82801 20H12C13.5823 20 15.129 19.5308 16.4446 18.6518C17.7602 17.7727 18.7855 16.5233 19.391 15.0615C19.9965 13.5997 20.155 11.9911 19.8463 10.4393C19.5376 8.88743 18.7757 7.46197 17.6569 6.34315C16.538 5.22433 15.1126 4.4624 13.5607 4.15372C12.0089 3.84504 10.4003 4.00346 8.93854 4.60896C7.47673 5.21446 6.2273 6.23984 5.34825 7.55544C4.4692 8.87103 4.00001 10.4177 4.00001 12C4.00001 14.152 4.85101 16.165 6.34301 17.657L7.0499 18.3639C7.44043 18.7544 7.44043 19.3876 7.0499 19.7781L6.82801 20ZM11 7C11 6.44771 11.4477 6 12 6V6V6C12.5523 6 13 6.44772 13 7V17C13 17.5523 12.5523 18 12 18V18V18C11.4477 18 11 17.5523 11 17V7ZM7.00001 10C7.00001 9.44772 7.44772 9 8.00001 9V9C8.55229 9 9.00001 9.44772 9.00001 10V14C9.00001 14.5523 8.55229 15 8.00001 15V15C7.44772 15 7.00001 14.5523 7.00001 14V10ZM15 10C15 9.44772 15.4477 9 16 9V9C16.5523 9 17 9.44772 17 10V14C17 14.5523 16.5523 15 16 15V15C15.4477 15 15 14.5523 15 14V10Z" fill="currentColor"/>',
+    viewport: '0 0 24 24',
+    set: 're-up.ph'
+  },
+  'copy-outline': {
+    symbol: `<rect width="336" height="336" x="128" y="128" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="32" rx="57" ry="57"></rect><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" d="m383.5 128l.5-24a56.16 56.16 0 0 0-56-56H112a64.19 64.19 0 0 0-64 64v216a56.16 56.16 0 0 0 56 56h24"></path>`,
+    viewBox: `0 0 512 512`,
+    set: `ion`
+  },
+  refresh: {
+    symbol: `<path fill="currentColor" stroke-width="1.5" d="M3.68 11.333h-.75zm0 1.667l-.528.532a.75.75 0 0 0 1.056 0zm2.208-1.134A.75.75 0 1 0 4.83 10.8zM2.528 10.8a.75.75 0 0 0-1.056 1.065zm16.088-3.408a.75.75 0 1 0 1.277-.786zM12.079 2.25c-5.047 0-9.15 4.061-9.15 9.083h1.5c0-4.182 3.42-7.583 7.65-7.583zm-9.15 9.083V13h1.5v-1.667zm1.28 2.2l1.679-1.667L4.83 10.8l-1.68 1.667zm0-1.065L2.528 10.8l-1.057 1.065l1.68 1.666zm15.684-5.86A9.16 9.16 0 0 0 12.08 2.25v1.5a7.66 7.66 0 0 1 6.537 3.643zM20.314 11l.527-.533a.75.75 0 0 0-1.054 0zM18.1 12.133a.75.75 0 0 0 1.055 1.067zm3.373 1.067a.75.75 0 1 0 1.054-1.067zM5.318 16.606a.75.75 0 1 0-1.277.788zm6.565 5.144c5.062 0 9.18-4.058 9.18-9.083h-1.5c0 4.18-3.43 7.583-7.68 7.583zm9.18-9.083V11h-1.5v1.667zm-1.276-2.2L18.1 12.133l1.055 1.067l1.686-1.667zm0 1.066l1.686 1.667l1.054-1.067l-1.686-1.666zM4.04 17.393a9.2 9.2 0 0 0 7.842 4.357v-1.5a7.7 7.7 0 0 1-6.565-3.644z"></path>`,
+    viewBox: `0 0 24 24`,
+    set: `solar`
+  },
+  'settings-square': {
+    symbol: `<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1" color="currentColor"><path d="M2.5 12c0-4.478 0-6.718 1.391-8.109S7.521 2.5 12 2.5c4.478 0 6.718 0 8.109 1.391S21.5 7.521 21.5 12c0 4.478 0 6.718-1.391 8.109S16.479 21.5 12 21.5c-4.478 0-6.718 0-8.109-1.391S2.5 16.479 2.5 12"></path><path d="M8.5 10a1.5 1.5 0 1 1 0-3a1.5 1.5 0 0 1 0 3m7 7a1.5 1.5 0 1 0 0-3a1.5 1.5 0 0 0 0 3M10 8.5h7m-3 7H7"></path></g>`,
+    viewBox: `0 0 24 24`,
+    set: `hugeicons`
   }
 }
+
+/*
+
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M2.00001 12C2.00001 6.477 6.47701 2 12 2C17.523 2 22 6.477 22 12C22 17.523 17.523 22 12 22H4.41422C3.52332 22 3.07715 20.9229 3.70711 20.2929L4.92901 19.071C3.99909 18.1434 3.26162 17.0412 2.75897 15.8278C2.25631 14.6143 1.99839 13.3135 2.00001 12ZM6.82801 20H12C13.5823 20 15.129 19.5308 16.4446 18.6518C17.7602 17.7727 18.7855 16.5233 19.391 15.0615C19.9965 13.5997 20.155 11.9911 19.8463 10.4393C19.5376 8.88743 18.7757 7.46197 17.6569 6.34315C16.538 5.22433 15.1126 4.4624 13.5607 4.15372C12.0089 3.84504 10.4003 4.00346 8.93854 4.60896C7.47673 5.21446 6.2273 6.23984 5.34825 7.55544C4.4692 8.87103 4.00001 10.4177 4.00001 12C4.00001 14.152 4.85101 16.165 6.34301 17.657L7.0499 18.3639C7.44043 18.7544 7.44043 19.3876 7.0499 19.7781L6.82801 20ZM11 7C11 6.44771 11.4477 6 12 6V6V6C12.5523 6 13 6.44772 13 7V17C13 17.5523 12.5523 18 12 18V18V18C11.4477 18 11 17.5523 11 17V7ZM7.00001 10C7.00001 9.44772 7.44772 9 8.00001 9V9C8.55229 9 9.00001 9.44772 9.00001 10V14C9.00001 14.5523 8.55229 15 8.00001 15V15C7.44772 15 7.00001 14.5523 7.00001 14V10ZM15 10C15 9.44772 15.4477 9 16 9V9C16.5523 9 17 9.44772 17 10V14C17 14.5523 16.5523 15 16 15V15C15.4477 15 15 14.5523 15 14V10Z" fill="black"/>
+</svg>
+</svg>
+*/
 
 export type IconNameType = keyof typeof icons

@@ -8,6 +8,7 @@ interface IconBtnProps {
   solid?: boolean
   iconStyle?: ClassName
   shadowStyle?: ClassName
+  hoverStyle?: ClassName
   withShadow?: boolean
   btnProps: ButtonProps
   animated?: boolean
@@ -18,6 +19,7 @@ export const IconBtn = ({
   iconStyle,
   withShadow,
   shadowStyle,
+  hoverStyle,
   animated = false,
   btnProps
 }: IconBtnProps) => {
@@ -36,10 +38,10 @@ export const IconBtn = ({
           name="squircle"
           className={cn(
             'absolute z-0',
-            'origin-center opacity-20',
-            'pointer-events-none shrink-0 text-stone-300',
+            'origin-center opacity-10',
+            'pointer-events-none shrink-0 text-stone-400/80',
             {
-              'dark:text-zinc-950/60 text-neutral-500 opacity-80':
+              'dark:text-zinc-950/60 text-neutral-200 opacity-80':
                 !btnProps.disabled
             },
             shadowStyle
@@ -61,7 +63,8 @@ export const IconBtn = ({
           'group-hover:text-stone-200/50',
           // DARK
           'dark:group-hover:text-zinc-950/40',
-          { 'group-hover:text-zinc-950/90': withShadow && !btnProps.disabled }
+          { 'group-hover:text-zinc-950/90': withShadow && !btnProps.disabled },
+          hoverStyle
         )}
       />
       <Icon
@@ -78,7 +81,8 @@ export const IconBtn = ({
           'transition-all duration-300',
           'group-disabled:text-neutral-500',
           {
-            'dark:group-hover:text-orange-300': withShadow && btnProps.disabled,
+            'dark:group-hover:text-orange-300/70':
+              withShadow && btnProps.disabled,
             'group-hover:-translate-y-1': animated && !btnProps.disabled,
             'group-hover:text-cyan-100': withShadow && !btnProps.disabled
           },

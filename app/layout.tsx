@@ -32,6 +32,7 @@ export const metadata: Metadata = {
     title,
     description
   },
+  icons: ['/images/s-wing.svg'],
   twitter: {
     title,
     description,

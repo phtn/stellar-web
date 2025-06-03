@@ -150,6 +150,10 @@ const config = {
       fontFamily: {
         sans: ['var(--font-sans)', ...fontFamily.sans],
         space: ['var(--font-space)']
+      },
+      letterSpacing: {
+        snug: '-0.045em',
+        teen: '-0.05em'
       }
     }
   },

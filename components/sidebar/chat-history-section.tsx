@@ -1,6 +1,7 @@
+'use client'
 import { ChatHistoryClient } from './chat-history-client'
 
-export async function ChatHistorySection() {
+export function ChatHistorySection() {
   const enableSaveChatHistory = process.env.ENABLE_SAVE_CHAT_HISTORY === 'true'
   if (!enableSaveChatHistory) {
     return null

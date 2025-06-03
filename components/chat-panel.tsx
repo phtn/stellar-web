@@ -45,12 +45,11 @@ export function ChatPanel({
   voiceRecording
 }: ChatPanelProps) {
   const [showEmptyScreen, setShowEmptyScreen] = useState(false)
-  const router = useRouter()
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const isFirstRender = useRef(true)
   const [isComposing, setIsComposing] = useState(false) // Composition state
   const [enterDisabled, setEnterDisabled] = useState(false) // Disable Enter after composition ends
-  const { close: closeArtifact } = useArtifact()
+  // const { close: closeArtifact } = useArtifact()
 
   const handleCompositionStart = () => setIsComposing(true)
 
@@ -111,12 +110,12 @@ export function ChatPanel({
       <IconBtn
         btnProps={{
           onClick: voiceToggle,
-          disabled: voiceRecording
+          disabled: false
         }}
         solid={!voiceRecording}
         iconStyle={
           voiceRecording
-            ? 'size-3.5 text-indigo-500 dark:text-indigo-500'
+            ? 'size-3.5 text-indigo-400 dark:text-indigo-500'
             : undefined
         }
         withShadow={voiceRecording}
@@ -141,7 +140,7 @@ export function ChatPanel({
       )}
       withShadow
       icon={isLoading ? 'spinners-ring' : 'arrow-up-broken'}
-      shadowStyle="text-zinc-950"
+      shadowStyle="text-stone-950"
       animated
     />
   )
@@ -175,11 +174,15 @@ export function ChatPanel({
         <div
           className={cn(
             'relative flex flex-col w-full gap-2',
-            'dark:bg-muted/70 bg-muted/40',
-            'rounded-3xl border-[0.75px] dark:border-muted/10 border-neutral-300',
-            { 'border-neutral-400': showEmptyScreen }
+            'dark:bg-sidebar bg-muted/80 dark:border-muted/10',
+            'rounded-3xl border-[0.75px] border-neutral-400',
+            'overflow-hidden',
+            { 'border-neutral-500': showEmptyScreen }
           )}
         >
+          <div className="absolute pointer-events-none -top-20 right-48 w-[28rem] h-44 dark:bg-neutral-500 rounded-full blur-[69px] opacity-40"></div>
+          <div className="absolute pointer-events-none -top-36 -right-12 w-64 h-64 dark:bg-transparent bg-cyan-300/40 rounded-full blur-[69px] opacity-50"></div>
+          <div className="absolute pointer-events-none -top-64 right-14 w-[28rem] h-[28rem] dark:bg-transparent bg-amber-300/40 rounded-full blur-[69px] opacity-30"></div>
           <Textarea
             rows={2}
             maxRows={5}
@@ -192,7 +195,7 @@ export function ChatPanel({
             onCompositionEnd={handleCompositionEnd}
             onCompositionStart={handleCompositionStart}
             disabled={isLoading || isToolInvocationInProgress()}
-            className="resize-none w-full min-h-12 bg-transparent font-space border-0 p-4 text-sm placeholder:text-muted-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+            className="resize-none w-full min-h-12 bg-transparent font-space border-0 py-4 px-5 text-sm placeholder:text-muted-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             onChange={e => {
               handleInputChange(e)
               setShowEmptyScreen(e.target.value.length === 0)
@@ -222,18 +225,18 @@ export function ChatPanel({
             <div className="flex items-center gap-2">
               {/* <ModelSelector models={models ?? []} /> */}
               <ToggleFeature
-                icon="phone-bold"
                 label="Search"
+                icon="phone-bold"
                 fn={() => console.log('')}
               />
               <ToggleFeature
-                icon="phone-bold"
                 label="Think"
+                icon="phone-bold"
                 fn={() => console.log('')}
               />
               <ToggleFeature
-                icon="phone-bold"
                 label="Code"
+                icon="phone-bold"
                 fn={() => console.log('')}
               />
             </div>

@@ -1,27 +1,27 @@
-'use client'
-
-import { RotateCcw } from 'lucide-react'
+import { useCallback } from 'react'
 import { Button } from './ui/button'
+import { Icon } from '@/lib/icons'
 
 interface RetryButtonProps {
   reload: () => Promise<string | null | undefined>
   messageId: string
 }
 
-export const RetryButton: React.FC<RetryButtonProps> = ({
-  reload,
-  messageId
-}) => {
+export const RetryButton = ({ reload, messageId }: RetryButtonProps) => {
+  const handleReload = useCallback(() => {
+    reload()
+  }, [reload])
+
   return (
     <Button
-      className="rounded-full h-8 w-8"
+      size="icon"
       type="button"
       variant="ghost"
-      size="icon"
-      onClick={() => reload()}
+      onClick={handleReload}
+      className="rounded-full"
       aria-label={`Retry from message ${messageId}`}
     >
-      <RotateCcw className="w-4 h-4" />
+      <Icon name="refresh" className="size-4 text-stone-700" />
       <span className="sr-only">Retry</span>
     </Button>
   )

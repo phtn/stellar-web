@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import { ChatShare } from './chat-share'
 import { RetryButton } from './retry-button'
 import { Button } from './ui/button'
+import { Icon } from '@/lib/icons'
 
 interface MessageActionsProps {
   message: string
@@ -39,19 +40,19 @@ export function MessageActions({
   return (
     <div
       className={cn(
-        'flex items-center gap-0.5 self-end transition-opacity duration-200',
+        'flex items-center gap-0.5 transition-opacity duration-200',
         isLoading ? 'opacity-0' : 'opacity-60',
         className
       )}
     >
       {reload && <RetryButton reload={reload} messageId={messageId} />}
       <Button
-        variant="ghost"
         size="icon"
+        variant="ghost"
         onClick={handleCopy}
         className="rounded-full"
       >
-        <Copy size={12} />
+        <Icon name="copy-outline" className="size-4 text-stone-500" />
       </Button>
       {enableShare && chatId && <ChatShare chatId={chatId} />}
     </div>

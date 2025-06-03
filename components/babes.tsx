@@ -72,9 +72,9 @@ export const Babes = () => {
     <div className="mb-10 flex flex-col items-center gap-4 scroll-smooth will-change-scroll">
       <div className="md:w-[36rem] w-[28rem] flex items-center justify-between">
         <div className="flex items-center">
-          <span className="font-space font-bold">{current}</span>
+          <span className="font-space font-bold opacity-60">{current}</span>
           <span className="px-2 text-xs scale-75 opacity-50">|</span>
-          <span className="font-space font-medium capitalize">
+          <span className="font-space font-medium capitalize opacity-80">
             {babes[current - 1]?.id}
           </span>
         </div>
@@ -115,18 +115,18 @@ export const Babes = () => {
       </Carousel>
       <div className="flex items-center justify-center space-x-6 h-16">
         <Icon
-          name="quotes"
           size={32}
-          className="rotate-180 opacity-50 text-cyan-300"
+          name="quotes"
+          className="rotate-180 opacity-50 dark:text-cyan-300 text-teal-500"
         />
-        <p className="text-center font-space text-base italic text-neutral-400">
+        <p className="text-center font-space text-base italic dark:text-neutral-400 text-neutral-500">
           {babes[current - 1]?.greeting}
         </p>
 
         <Icon
           name="quotes"
           size={24}
-          className="opacity-15 text-teal-100 blur-[1.5px]"
+          className="dark:opacity-15 dark:text-teal-100 text-stone-300 blur-[1.5px]"
         />
       </div>
     </div>
@@ -146,7 +146,7 @@ export const Pro = () => (
       className={cn(
         'font-space text-lg scale-105 -tracking-wide',
         'ps-[1px] pe-[2.25px] pb-[2.5px] text-transparent bg-clip-text',
-        'bg-gradient-to-r from-indigo-400 via-cyan-300 to-teal-500',
+        'bg-gradient-to-r from-indigo-400 via-sky-400 to-cyan-200 ',
         ''
       )}
     >
@@ -191,7 +191,7 @@ export const ToggleFeature = ({
     )}
   >
     {/* <Icon name={icon} size={14} className={cn('text-background')} /> */}
-    <span className="font-space font-light tracking-wide text-sm text-teal-100">
+    <span className="font-space font-light tracking-wide text-sm text-teal-100 dark:text-teal-200">
       {label}
     </span>
     {/* <Pro /> */}
