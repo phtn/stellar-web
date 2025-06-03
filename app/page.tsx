@@ -18,9 +18,5 @@ export default async function Page() {
   if (wsUrl) {
     setCookie('ws-state', 'enabled')
   }
-
-  // console.log(wsUrl)
-  // Use wsUrl to connect your WebSocket
-
   return <Content />
 }

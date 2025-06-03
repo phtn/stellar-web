@@ -13,7 +13,7 @@ interface HeaderProps {
   user: User | null
 }
 
-export const Header: React.FC<HeaderProps> = ({ user }) => {
+export const Header = ({ user }: HeaderProps) => {
   const { open } = useSidebar()
   return (
     <header

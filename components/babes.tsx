@@ -136,16 +136,16 @@ export const Babes = () => {
 export const Pro = () => (
   <div
     className={cn(
-      'bg-stone-950 h-[12.5px]',
+      'bg-stone-800 h-[12.5px]',
       'flex items-center justify-center overflow-hidden',
-      'border border-b-0 border-stone-950',
-      'rounded-ss-[3px] rounded-e-xl'
+      'border border-b-0 border-stone-800',
+      'rounded-ss-[3.5px] rounded-se-[1px] rounded-e-xl'
     )}
   >
     <span
       className={cn(
         'font-space text-lg scale-105 -tracking-wide',
-        'ps-[1px] pe-[2.25px] pb-[2.5px] text-transparent bg-clip-text',
+        'ps-[1px] pe-[2.25px] pb-[2.70px] text-transparent bg-clip-text',
         'bg-gradient-to-r from-indigo-400 via-sky-400 to-cyan-200 ',
         ''
       )}
@@ -165,11 +165,13 @@ export const ActionFeature = ({ icon, label, fn }: ActionFeatureProps) => (
   <button
     onClick={fn}
     className={cn(
-      'font-space font-medium rounded-full flex items-center justify-center space-x-2 border border-primary bg-primary ps-1 pe-1.5 text-sm py-1 text-teal-200 dark:bg-foreground/15 dark:border-foreground/10'
+      ' rounded-full flex items-center justify-center space-x-2 border border-teal-500 bg-teal-500 ps-1 pe-1.5 py-1 dark:bg-foreground/15 dark:border-foreground/10'
     )}
   >
     <Icon name={icon} size={14} />
-    <span className="tracking-tight">{label}</span>
+    <span className="tracking-tight font-space font-medium text-base text-white">
+      {label}
+    </span>
     <Pro />
   </button>
 )
@@ -191,7 +193,7 @@ export const ToggleFeature = ({
     )}
   >
     {/* <Icon name={icon} size={14} className={cn('text-background')} /> */}
-    <span className="font-space font-light tracking-wide text-sm text-teal-100 dark:text-teal-200">
+    <span className="font-space font-light tracking-wide text-sm text-teal-100 dark:text-teal-50">
       {label}
     </span>
     {/* <Pro /> */}

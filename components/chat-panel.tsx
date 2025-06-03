@@ -2,10 +2,8 @@ import { Model } from '@/lib/types/models'
 import { cn } from '@/lib/utils'
 import { Message } from 'ai'
 import { ChevronDown } from 'lucide-react'
-import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Textarea from 'react-textarea-autosize'
-import { useArtifact } from './artifact/artifact-context'
 import { Babes, ToggleFeature } from './babes'
 import { EmptyScreen } from './empty-screen'
 import { IconBtn } from './icon-btn'
@@ -136,7 +134,8 @@ export function ChatPanel({
       solid={!voiceRecording}
       iconStyle={cn(
         'text-teal-200 dark:text-teal-200',
-        'disabled:text-foreground/80 disabled:bg-foreground/20 rounded-xl'
+        'disabled:text-foreground/80 disabled:bg-foreground/20 rounded-xl',
+        'dark:group-hover:text-cyan-200'
       )}
       withShadow
       icon={isLoading ? 'spinners-ring' : 'arrow-up-broken'}
@@ -175,14 +174,20 @@ export function ChatPanel({
           className={cn(
             'relative flex flex-col w-full gap-2',
             'dark:bg-sidebar bg-muted/80 dark:border-muted/10',
-            'rounded-3xl border-[0.75px] border-neutral-400',
+            'rounded-3xl border-[0.75px] border-neutral-500',
+            ' shadow-md shadow-stone-200/80 dark:shadow-none',
             'overflow-hidden',
-            { 'border-neutral-500': showEmptyScreen }
+            { 'border-neutral-600': showEmptyScreen }
           )}
         >
+          {/*TEXTAREA GRADIENT BGs */}
+          {/* DARK */}
           <div className="absolute pointer-events-none -top-20 right-48 w-[28rem] h-44 dark:bg-neutral-500 rounded-full blur-[69px] opacity-40"></div>
-          <div className="absolute pointer-events-none -top-36 -right-12 w-64 h-64 dark:bg-transparent bg-cyan-300/40 rounded-full blur-[69px] opacity-50"></div>
-          <div className="absolute pointer-events-none -top-64 right-14 w-[28rem] h-[28rem] dark:bg-transparent bg-amber-300/40 rounded-full blur-[69px] opacity-30"></div>
+          <div className="absolute pointer-events-none -top-10 -right-56 w-[40rem] h-14 dark:bg-gradient-to-b from-cyan-100 to-cyan-200 rounded-full blur-[56px] -rotate-[30deg] opacity-20"></div>
+          {/* LIGHT */}
+          <div className="absolute pointer-events-none -top-6 -right-32 w-64 h-[10rem] rotate-45 dark:bg-transparent bg-cyan-200/40 rounded-full blur-[24px] shadow-inner opacity-40"></div>
+          <div className="absolute pointer-events-none -top-0 -right-24 w-[28rem] h-[8rem] rotate-45 dark:bg-transparent bg-orange-200/40 rounded-full blur-[32px] opacity-40"></div>
+          {/*  */}
           <Textarea
             rows={2}
             maxRows={5}

@@ -13,8 +13,8 @@ import {
 import { Link2, LogIn, Palette } from 'lucide-react'
 import Link from 'next/link'
 import { ExternalLinkItems } from './external-link-items'
-import { ThemeMenuItems } from './theme-menu-items'
 import { IconBtn } from './icon-btn'
+import { ThemeMenuItems } from './theme-menu-items'
 
 export default function GuestMenu() {
   return (
