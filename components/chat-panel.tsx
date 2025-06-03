@@ -1,20 +1,13 @@
-import { Icon } from '@/lib/icons'
 import { Model } from '@/lib/types/models'
 import { cn } from '@/lib/utils'
 import { Message } from 'ai'
 import { ChevronDown } from 'lucide-react'
-import Image from 'next/image'
-import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Textarea from 'react-textarea-autosize'
-import { useArtifact } from './artifact/artifact-context'
+import { Babes, ToggleFeature } from './babes'
 import { EmptyScreen } from './empty-screen'
-import { SearchModeToggle } from './search-mode-toggle'
+import { IconBtn } from './icon-btn'
 import { Button } from './ui/button'
-import { Carousel, CarouselContent, CarouselItem } from './ui/carousel'
-import { ConfigCtx } from '@/ctx/config'
-import { ActionFeature, Babes } from './babes'
-import { ExtremeModeToggle } from './extreme'
 
 interface ChatPanelProps {
   input: string
@@ -41,23 +34,20 @@ export function ChatPanel({
   handleSubmit,
   isLoading,
   messages,
-  setMessages,
   query,
   stop,
   append,
-  models,
   showScrollToBottomButton,
   scrollContainerRef,
   voiceToggle,
   voiceRecording
 }: ChatPanelProps) {
   const [showEmptyScreen, setShowEmptyScreen] = useState(false)
-  const router = useRouter()
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const isFirstRender = useRef(true)
   const [isComposing, setIsComposing] = useState(false) // Composition state
   const [enterDisabled, setEnterDisabled] = useState(false) // Disable Enter after composition ends
-  const { close: closeArtifact } = useArtifact()
+  // const { close: closeArtifact } = useArtifact()
 
   const handleCompositionStart = () => setIsComposing(true)
 
@@ -69,13 +59,13 @@ export function ChatPanel({
     }, 300)
   }
 
-  const handleNewChat = () => {
-    setMessages([])
-    closeArtifact()
-    router.push('/')
-  }
+  // const handleNewChat = () => {
+  //   setMessages([])
+  //   closeArtifact()
+  //   router.push('/')
+  // }
 
-  const isToolInvocationInProgress = () => {
+  const isToolInvocationInProgress = useCallback(() => {
     if (!messages.length) return false
 
     const lastMessage = messages[messages.length - 1]
@@ -88,7 +78,7 @@ export function ChatPanel({
       lastPart?.type === 'tool-invocation' &&
       lastPart?.toolInvocation?.state === 'call'
     )
-  }
+  }, [messages])
 
   // if query is not empty, submit the query
   useEffect(() => {
@@ -115,32 +105,43 @@ export function ChatPanel({
 
   const VoiceToggle = useCallback(
     () => (
-      <Button
-        size="icon"
-        type="button"
-        onClick={voiceToggle}
-        disabled={voiceRecording}
-        className={cn(
-          'shrink-0 rounded-full border-[0.5px] border-transparent',
-          ' group bg-transparent hover:border-sky-800/20 hover:bg-background rounded-2xl',
-          'flex items-center justify-center',
-          {
-            'animate-pulse': voiceRecording
-          }
-        )}
-      >
-        <Icon
-          size={voiceRecording ? 14 : 18}
-          solid={!voiceRecording}
-          name={voiceRecording ? 'spinners-bars-scale' : 'microphone-noir'}
-          className={cn(
-            'group-hover:text-sky-950 text-neutral-500 dark:text-sky-400/80',
-            { 'text-indigo-500': voiceRecording }
-          )}
-        />
-      </Button>
+      <IconBtn
+        btnProps={{
+          onClick: voiceToggle,
+          disabled: false
+        }}
+        solid={!voiceRecording}
+        iconStyle={
+          voiceRecording
+            ? 'size-3.5 text-indigo-400 dark:text-indigo-500'
+            : undefined
+        }
+        withShadow={voiceRecording}
+        icon={voiceRecording ? 'spinners-bars-middle' : 'microphone-noir'}
+      />
     ),
     [voiceRecording, voiceToggle]
+  )
+
+  const SendMessage = () => (
+    <IconBtn
+      btnProps={{
+        onClick: isLoading ? stop : undefined,
+        disabled:
+          (input.length === 0 && !isLoading) || isToolInvocationInProgress(),
+        type: isLoading ? 'button' : 'submit'
+      }}
+      solid={!voiceRecording}
+      iconStyle={cn(
+        'text-teal-200 dark:text-teal-200',
+        'disabled:text-foreground/80 disabled:bg-foreground/20 rounded-xl',
+        'dark:group-hover:text-cyan-200'
+      )}
+      withShadow
+      icon={isLoading ? 'spinners-ring' : 'arrow-up-broken'}
+      shadowStyle="text-stone-950"
+      animated
+    />
   )
 
   return (
@@ -158,31 +159,48 @@ export function ChatPanel({
         {/* Scroll to bottom button - only shown when showScrollToBottomButton is true */}
         {showScrollToBottomButton && messages.length > 0 && (
           <Button
+            size="icon"
             type="button"
             variant="outline"
-            size="icon"
-            className="absolute -top-10 right-4 z-20 size-8 rounded-full shadow-md"
-            onClick={handleScrollToBottom}
             title="Scroll to bottom"
+            onClick={handleScrollToBottom}
+            className="absolute -top-10 right-4 z-20 size-8 rounded-full shadow-md"
           >
             <ChevronDown size={16} />
           </Button>
         )}
 
-        <div className="relative flex flex-col w-full gap-2 bg-muted/40 dark:border-muted/10 rounded-3xl border-[0.5px] border-neutral-300">
+        <div
+          className={cn(
+            'relative flex flex-col w-full gap-2',
+            'dark:bg-sidebar bg-muted/80 dark:border-muted/10',
+            'rounded-3xl border-[0.75px] border-neutral-500',
+            ' shadow-md shadow-stone-200/80 dark:shadow-none',
+            'overflow-hidden',
+            { 'border-neutral-600': showEmptyScreen }
+          )}
+        >
+          {/*TEXTAREA GRADIENT BGs */}
+          {/* DARK */}
+          <div className="absolute pointer-events-none -top-20 right-48 w-[28rem] h-44 dark:bg-neutral-500 rounded-full blur-[69px] opacity-40"></div>
+          <div className="absolute pointer-events-none -top-10 -right-56 w-[40rem] h-14 dark:bg-gradient-to-b from-cyan-100 to-cyan-200 rounded-full blur-[56px] -rotate-[30deg] opacity-20"></div>
+          {/* LIGHT */}
+          <div className="absolute pointer-events-none -top-6 -right-32 w-64 h-[10rem] rotate-45 dark:bg-transparent bg-cyan-200/40 rounded-full blur-[24px] shadow-inner opacity-40"></div>
+          <div className="absolute pointer-events-none -top-0 -right-24 w-[28rem] h-[8rem] rotate-45 dark:bg-transparent bg-orange-200/40 rounded-full blur-[32px] opacity-40"></div>
+          {/*  */}
           <Textarea
-            ref={inputRef}
-            name="input"
             rows={2}
             maxRows={5}
+            name="input"
             tabIndex={0}
-            onCompositionStart={handleCompositionStart}
-            onCompositionEnd={handleCompositionEnd}
-            placeholder="your reply"
-            spellCheck={false}
             value={input}
+            ref={inputRef}
+            spellCheck={false}
+            placeholder="your reply"
+            onCompositionEnd={handleCompositionEnd}
+            onCompositionStart={handleCompositionStart}
             disabled={isLoading || isToolInvocationInProgress()}
-            className="resize-none w-full min-h-12 bg-transparent font-space border-0 p-4 text-sm placeholder:text-muted-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+            className="resize-none w-full min-h-12 bg-transparent font-space border-0 py-4 px-5 text-sm placeholder:text-muted-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             onChange={e => {
               handleInputChange(e)
               setShowEmptyScreen(e.target.value.length === 0)
@@ -211,37 +229,25 @@ export function ChatPanel({
           <div className="flex items-center justify-between p-3">
             <div className="flex items-center gap-2">
               {/* <ModelSelector models={models ?? []} /> */}
-              <ActionFeature
+              <ToggleFeature
+                label="Search"
                 icon="phone-bold"
-                label="Call"
+                fn={() => console.log('')}
+              />
+              <ToggleFeature
+                label="Think"
+                icon="phone-bold"
+                fn={() => console.log('')}
+              />
+              <ToggleFeature
+                label="Code"
+                icon="phone-bold"
                 fn={() => console.log('')}
               />
             </div>
             <div className="flex items-center gap-4">
               <VoiceToggle />
-              <Button
-                size={'icon'}
-                type={isLoading ? 'button' : 'submit'}
-                className={cn(
-                  isLoading && 'animate-pulse',
-                  'rounded-2xl bg-primary/80'
-                )}
-                disabled={
-                  (input.length === 0 && !isLoading) ||
-                  isToolInvocationInProgress()
-                }
-                onClick={isLoading ? stop : undefined}
-              >
-                {isLoading ? (
-                  <Icon name="spinners-ring" size={16} />
-                ) : (
-                  <Icon
-                    name="arrow-up-broken"
-                    size={16}
-                    className="text-teal-200 dark:text-lime-600"
-                  />
-                )}
-              </Button>
+              <SendMessage />
             </div>
           </div>
         </div>

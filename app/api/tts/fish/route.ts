@@ -4,7 +4,7 @@ const TTS_Service = {
   BASE_URL: process.env.TTS_SERVICE_URL ?? ''
 }
 const key = process.env.TTS_API_KEY ?? ''
-const reference_id = process.env.MOODY ?? ''
+const reference_id = process.env.ELLIE ?? ''
 
 export async function POST(req: Request): Promise<Response> {
   const { content } = await req.json()

@@ -39,3 +39,5 @@ next-env.d.ts
 .cursor/rules/private
 
 instructions
+scripts/fish.sh
+icon.txt

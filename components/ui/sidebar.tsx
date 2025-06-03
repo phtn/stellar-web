@@ -272,22 +272,25 @@ const SidebarTrigger = React.forwardRef<
   React.ElementRef<typeof Button>,
   React.ComponentProps<typeof Button>
 >(({ className, onClick, ...props }, ref) => {
-  const { toggleSidebar } = useSidebar()
+  const { toggleSidebar, open } = useSidebar()
 
   return (
     <Button
       ref={ref}
-      data-sidebar="trigger"
-      variant="ghost"
       size="icon"
-      className={cn('size-6', className)}
+      variant="ghost"
+      data-sidebar="trigger"
+      className={cn('size-7', className)}
       onClick={event => {
         onClick?.(event)
         toggleSidebar()
       }}
       {...props}
     >
-      <Icon name="sidebar-duo" size={18} className="rotate-180" />
+      <Icon
+        name="sidebar-duo"
+        className={cn('opacity-60 size-7', { 'rotate-180': open })}
+      />
       <span className="sr-only">Toggle Sidebar</span>
     </Button>
   )
@@ -303,11 +306,11 @@ const SidebarRail = React.forwardRef<
   return (
     <button
       ref={ref}
-      data-sidebar="rail"
-      aria-label="Toggle Sidebar"
       tabIndex={-1}
-      onClick={toggleSidebar}
+      data-sidebar="rail"
       title="Toggle Sidebar"
+      onClick={toggleSidebar}
+      aria-label="Toggle Sidebar"
       className={cn(
         'absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-all ease-linear after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] hover:after:bg-sidebar-border group-data-[side=left]:-right-4 group-data-[side=right]:left-0 sm:flex',
         '[[data-side=left]_&]:cursor-w-resize [[data-side=right]_&]:cursor-e-resize',

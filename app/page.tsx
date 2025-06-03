@@ -1,9 +1,22 @@
-import { Chat } from '@/components/chat'
-import { getModels } from '@/lib/config/models'
-import { generateId } from 'ai'
+import PlayHTWsAuthManager from '@/services/tts/playhtWsAuthManager'
+import { Content } from './content'
+import { setCookie } from '@/lib/utils/cookies'
 
 export default async function Page() {
-  const id = generateId()
-  const models = await getModels()
-  return <Chat id={id} models={models} />
+  PlayHTWsAuthManager.getInstance()
+    .refresh()
+    .then(() => {
+      console.clear()
+    })
+    .finally(() => {
+      console.log('Stream ON')
+    })
+
+  const wsUrl =
+    await PlayHTWsAuthManager.getInstance().getWebSocketUrl('PlayDialog')
+
+  if (wsUrl) {
+    setCookie('ws-state', 'enabled')
+  }
+  return <Content />
 }

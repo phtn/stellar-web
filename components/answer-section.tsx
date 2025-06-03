@@ -1,9 +1,13 @@
+import { Icon } from '@/lib/icons'
 import { ChatRequestOptions } from 'ai'
 import { CollapsibleMessage } from './collapsible-message'
 import { DefaultSkeleton } from './default-skeleton'
 import { BotMessage } from './message'
 import { MessageActions } from './message-actions'
-import { Icon } from '@/lib/icons'
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
+import { useEffect, useState } from 'react'
+import { cn } from '@/lib/utils'
+import { format } from 'date-fns'
 
 export type AnswerSectionProps = {
   content: string
@@ -16,6 +20,7 @@ export type AnswerSectionProps = {
     messageId: string,
     options?: ChatRequestOptions
   ) => Promise<string | null | undefined>
+  isTTSPlaying?: boolean
 }
 
 export function AnswerSection({
@@ -25,9 +30,19 @@ export function AnswerSection({
   chatId,
   showActions = true, // Default to true for backward compatibility
   messageId,
-  reload
+  reload,
+  isTTSPlaying
 }: AnswerSectionProps) {
   const enableShare = process.env.NEXT_PUBLIC_ENABLE_SHARE === 'true'
+
+  const [timestamp, setTimestamp] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (content) {
+      const date = new Date()
+      setTimestamp(format(date, 'Pp'))
+    }
+  }, [content])
 
   const handleReload = () => {
     if (reload) {
@@ -36,36 +51,58 @@ export function AnswerSection({
     return Promise.resolve(undefined)
   }
 
+  const VoicePlayback = () => (
+    <Icon
+      name={isTTSPlaying ? 'spinners-bars-middle' : 'ai-voice'}
+      className={cn('text-indigo-500 dark:text-indigo-400 size-5', {
+        'text-stone-400 size-2.5': isTTSPlaying
+      })}
+      solid
+    />
+  )
+
   const message = content ? (
-    <div className="flex flex-col gap-1">
-      <div className="flex flex-row space-x-3">
-        <Icon
-          name="asterisk"
-          className="dark:text-pink-500/80 shrink-0 text-pink-500 size-5"
-        />
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-row items-center space-x-3">
+        <Avatar className="size-6">
+          {false && <AvatarImage src={''} alt={''} />}
+          <AvatarFallback className="dark:bg-background/50">
+            <Icon
+              size={14}
+              name="asterisk"
+              className="text-pink-400 dark:text-pink-200/60"
+            />
+          </AvatarFallback>
+        </Avatar>
+        <VoicePlayback />
+      </div>
+      <div className="pt-2 px-2">
         <BotMessage message={content} />
       </div>
-      {showActions && (
-        <MessageActions
-          message={content} // Keep original message content for copy
-          messageId={messageId}
-          chatId={chatId}
-          enableShare={enableShare}
-          reload={handleReload}
-        />
-      )}
+      <div className="flex items-end justify-between">
+        <div className="ps-2 font-space text-sm opacity-50">{timestamp}</div>
+        {showActions && (
+          <MessageActions
+            chatId={chatId}
+            message={content} // Keep original message content for copy
+            reload={handleReload}
+            messageId={messageId}
+            enableShare={enableShare}
+          />
+        )}
+      </div>
     </div>
   ) : (
     <DefaultSkeleton />
   )
   return (
     <CollapsibleMessage
-      role="assistant"
-      isCollapsible={false}
       isOpen={isOpen}
-      onOpenChange={onOpenChange}
-      showBorder={false}
       showIcon={false}
+      showBorder={false}
+      role={'assistant'}
+      isCollapsible={false}
+      onOpenChange={onOpenChange}
     >
       {message}
     </CollapsibleMessage>

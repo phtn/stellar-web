@@ -26,6 +26,7 @@ interface ChatMessagesProps {
     messageId: string,
     options?: ChatRequestOptions
   ) => Promise<string | null | undefined>
+  isTTSPlaying?: boolean
 }
 
 export function ChatMessages({
@@ -37,7 +38,8 @@ export function ChatMessages({
   isLoading,
   addToolResult,
   onUpdateMessage,
-  scrollContainerRef
+  scrollContainerRef,
+  isTTSPlaying
 }: ChatMessagesProps) {
   const [openStates, setOpenStates] = useState<Record<string, boolean>>({})
   const manualToolCallId = 'manual-tool-call'
@@ -114,9 +116,9 @@ export function ChatMessages({
 
   return (
     <div
+      role="list"
       id="scroll-container"
       ref={scrollContainerRef}
-      role="list"
       aria-roledescription="chat messages"
       className={cn(
         'relative size-full pt-14',
@@ -138,15 +140,16 @@ export function ChatMessages({
             {/* User message */}
             <div className="flex font-space flex-col items-end gap-4 mb-8">
               <RenderMessage
-                message={section.userMessage}
-                messageId={section.userMessage.id}
-                getIsOpen={getIsOpen}
-                onOpenChange={handleOpenChange}
-                onQuerySelect={onQuerySelect}
-                chatId={chatId}
-                addToolResult={addToolResult}
-                onUpdateMessage={onUpdateMessage}
                 reload={reload}
+                chatId={chatId}
+                getIsOpen={getIsOpen}
+                isTTSPlaying={isTTSPlaying}
+                message={section.userMessage}
+                onQuerySelect={onQuerySelect}
+                addToolResult={addToolResult}
+                onOpenChange={handleOpenChange}
+                onUpdateMessage={onUpdateMessage}
+                messageId={section.userMessage.id}
               />
               {showLoading && <Spinner />}
             </div>
@@ -155,18 +158,19 @@ export function ChatMessages({
             {section.assistantMessages.map(assistantMessage => (
               <div
                 key={assistantMessage.id}
-                className="flex flex-col p-2 border border-muted/20 dark:bg-muted/30 bg-muted/50 rounded-2xl italic max-w-prose gap-4"
+                className="flex flex-col p-3 border border-muted/20 dark:bg-muted/30 bg-muted/80 rounded-2xl max-w-prose gap-4"
               >
                 <RenderMessage
-                  message={assistantMessage}
-                  messageId={assistantMessage.id}
-                  getIsOpen={getIsOpen}
-                  onOpenChange={handleOpenChange}
-                  onQuerySelect={onQuerySelect}
                   chatId={chatId}
-                  addToolResult={addToolResult}
-                  onUpdateMessage={onUpdateMessage}
                   reload={reload}
+                  getIsOpen={getIsOpen}
+                  message={assistantMessage}
+                  isTTSPlaying={isTTSPlaying}
+                  onQuerySelect={onQuerySelect}
+                  addToolResult={addToolResult}
+                  messageId={assistantMessage.id}
+                  onOpenChange={handleOpenChange}
+                  onUpdateMessage={onUpdateMessage}
                 />
               </div>
             ))}
@@ -175,11 +179,11 @@ export function ChatMessages({
 
         {showLoading && lastToolData && (
           <ToolSection
-            key={manualToolCallId}
             tool={lastToolData}
+            key={manualToolCallId}
+            addToolResult={addToolResult}
             isOpen={getIsOpen(manualToolCallId)}
             onOpenChange={open => handleOpenChange(manualToolCallId, open)}
-            addToolResult={addToolResult}
           />
         )}
       </div>

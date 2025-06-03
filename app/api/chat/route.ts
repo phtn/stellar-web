@@ -1,9 +1,10 @@
-import { gf } from '@/instructions/gf'
 import { cohere } from '@ai-sdk/cohere'
 import { streamText } from 'ai'
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30
+const hex = process.env.INSTRUCTX
+const instructions = hex && atob(hex)
 
 export async function POST(req: Request) {
   const { messages } = await req.json()
@@ -14,7 +15,7 @@ export async function POST(req: Request) {
     messages: [
       {
         role: 'system',
-        content: gf
+        content: instructions
       },
       ...messages
     ]

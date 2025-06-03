@@ -2,7 +2,7 @@
 
 import { cn } from '@/lib/utils'
 import { Pencil } from 'lucide-react'
-import React, { useState } from 'react'
+import React, { ChangeEvent, useCallback, useState } from 'react'
 import TextareaAutosize from 'react-textarea-autosize'
 import { CollapsibleMessage } from './collapsible-message'
 import { Button } from './ui/button'
@@ -43,21 +43,28 @@ export const UserMessage: React.FC<UserMessageProps> = ({
     }
   }
 
+  const handleTextChange = useCallback(
+    (e: ChangeEvent<HTMLTextAreaElement>) => {
+      setEditedContent(e.target.value)
+    },
+    []
+  )
+
   return (
     <CollapsibleMessage role="user">
       <div
-        className="flex-1 break-words w-full group outline-none relative"
         tabIndex={0}
+        className="flex-1 break-words w-full group outline-none relative"
       >
         {isEditing ? (
           <div className="flex flex-col gap-2">
             <TextareaAutosize
-              value={editedContent}
-              onChange={e => setEditedContent(e.target.value)}
               autoFocus
-              className="resize-none flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
               minRows={2}
               maxRows={10}
+              value={editedContent}
+              onChange={handleTextChange}
+              className="resize-none flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             />
             <div className="flex justify-end gap-2">
               <Button variant="secondary" size="sm" onClick={handleCancelClick}>
@@ -83,8 +90,8 @@ export const UserMessage: React.FC<UserMessageProps> = ({
               <Button
                 size="icon"
                 variant="ghost"
-                className="rounded-full h-7 w-7"
                 onClick={handleEditClick}
+                className="rounded-full size-7"
               >
                 <Pencil className="size-3.5" />
               </Button>

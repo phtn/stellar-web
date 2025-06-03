@@ -1,11 +1,8 @@
-import {
-  EventHandler,
-  use,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState
-} from 'react'
+import { ConfigCtx } from '@/ctx/config'
+import { Icon, IconName } from '@/lib/icons'
+import { cn } from '@/lib/utils'
+import Image from 'next/image'
+import { use, useEffect, useMemo, useState } from 'react'
 import {
   Carousel,
   CarouselApi,
@@ -14,10 +11,7 @@ import {
   CarouselNext,
   CarouselPrevious
 } from './ui/carousel'
-import { ConfigCtx } from '@/ctx/config'
-import Image from 'next/image'
-import { Icon, IconName } from '@/lib/icons'
-import { cn } from '@/lib/utils'
+import { Toggle } from './ui/toggle'
 
 interface IBabe {
   id: string
@@ -78,14 +72,14 @@ export const Babes = () => {
     <div className="mb-10 flex flex-col items-center gap-4 scroll-smooth will-change-scroll">
       <div className="md:w-[36rem] w-[28rem] flex items-center justify-between">
         <div className="flex items-center">
-          <span className="font-space font-bold">{current}</span>
+          <span className="font-space font-bold opacity-60">{current}</span>
           <span className="px-2 text-xs scale-75 opacity-50">|</span>
-          <span className="font-space font-medium capitalize">
+          <span className="font-space font-medium capitalize opacity-80">
             {babes[current - 1]?.id}
           </span>
         </div>
         <ActionFeature
-          label="Voice"
+          label="Voice Chat"
           icon="voice-solid"
           fn={() => console.log('babes.tsx', 'voice')}
         />
@@ -121,15 +115,19 @@ export const Babes = () => {
       </Carousel>
       <div className="flex items-center justify-center space-x-6 h-16">
         <Icon
+          size={32}
           name="quotes"
-          size={28}
-          className="rotate-180 opacity-50 text-teal-500"
+          className="rotate-180 opacity-50 dark:text-cyan-300 text-teal-500"
         />
-        <p className="text-center font-space text-base italic text-neutral-500">
+        <p className="text-center font-space text-base italic dark:text-neutral-400 text-neutral-500">
           {babes[current - 1]?.greeting}
         </p>
 
-        <Icon name="quotes" size={28} className="opacity-10" />
+        <Icon
+          name="quotes"
+          size={24}
+          className="dark:opacity-15 dark:text-teal-100 text-stone-300 blur-[1.5px]"
+        />
       </div>
     </div>
   )
@@ -138,10 +136,20 @@ export const Babes = () => {
 export const Pro = () => (
   <div
     className={cn(
-      'bg-slate-300 text-teal-950 h-[11px] border-0 border-red-500 rounded-tl-[2.75px] rounded-e-xl flex items-center justify-center'
+      'bg-stone-800 h-[12.5px]',
+      'flex items-center justify-center overflow-hidden',
+      'border border-b-0 border-stone-800',
+      'rounded-ss-[3.5px] rounded-se-[1px] rounded-e-xl'
     )}
   >
-    <span className="ps-[1.5px] pe-[2.25px] font-space pb-[2.5px] text-lg scale-105 -tracking-wide">
+    <span
+      className={cn(
+        'font-space text-lg scale-105 -tracking-wide',
+        'ps-[1px] pe-[2.25px] pb-[2.70px] text-transparent bg-clip-text',
+        'bg-gradient-to-r from-indigo-400 via-sky-400 to-cyan-200 ',
+        ''
+      )}
+    >
       pro
     </span>
   </div>
@@ -151,13 +159,43 @@ interface ActionFeatureProps {
   label: string
   icon: IconName
   fn: VoidFunction
+  pressed?: boolean
 }
 export const ActionFeature = ({ icon, label, fn }: ActionFeatureProps) => (
   <button
     onClick={fn}
-    className="font-space font-medium rounded-full flex items-center justify-center space-x-2 border border-primary bg-primary ps-1 pe-1.5 text-sm py-1 text-teal-200 dark:bg-foreground/15 dark:border-foreground/10"
+    className={cn(
+      ' rounded-full flex items-center justify-center space-x-2 border border-teal-500 bg-teal-500 ps-1 pe-1.5 py-1 dark:bg-foreground/15 dark:border-foreground/10'
+    )}
   >
-    <Icon name={icon} size={16} /> <span>{label}</span>
+    <Icon name={icon} size={14} />
+    <span className="tracking-tight font-space font-medium text-base text-white">
+      {label}
+    </span>
     <Pro />
   </button>
+)
+
+export const ToggleFeature = ({
+  icon,
+  label,
+  fn,
+  pressed = false
+}: ActionFeatureProps) => (
+  <Toggle
+    pressed={pressed}
+    onClick={fn}
+    className={cn(
+      'h-9 flex items-center justify-center self-end',
+      'rounded-full border border-primary space-x-0.5',
+      'dark:bg-zinc-950/40 dark:border-foreground/10',
+      'bg-primary px-3 hover:bg-zinc-700'
+    )}
+  >
+    {/* <Icon name={icon} size={14} className={cn('text-background')} /> */}
+    <span className="font-space font-light tracking-wide text-sm text-teal-100 dark:text-teal-50">
+      {label}
+    </span>
+    {/* <Pro /> */}
+  </Toggle>
 )
