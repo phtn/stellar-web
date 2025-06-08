@@ -10,26 +10,9 @@ import Link from 'next/link'
 import { useCallback, useEffect, useRef, useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { ChatHistorySkeleton } from './chat-history-skeleton'
-import { ClearHistoryAction } from './clear-history-action'
-
-// interface ChatHistoryClientProps {} // Removed empty interface
-
-function formatDate(date: any) {
-  if (!date) return ''
-  // Firestore Timestamp object
-  if (date.seconds) {
-    date = new Date(date.seconds * 1000)
-  } else if (typeof date === 'string' || typeof date === 'number') {
-    date = new Date(date)
-  }
-  return date.toLocaleString('en-US', {
-    month: '2-digit',
-    day: '2-digit'
-  })
-}
+import { Badge } from '../ui/badge'
 
 export function ChatHistoryClient() {
-  // Removed props from function signature
   const [chats, setChats] = useState<Chat[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const loadMoreRef = useRef<HTMLDivElement>(null)
@@ -72,10 +55,10 @@ export function ChatHistoryClient() {
   return (
     <div className="flex flex-col flex-1 h-full">
       <SidebarGroup>
-        <div className="flex items-center justify-between w-full">
+        {/* <div className="flex items-center justify-between w-full">
           <SidebarGroupLabel className="p-0">History</SidebarGroupLabel>
           <ClearHistoryAction empty={isHistoryEmpty} />
-        </div>
+        </div> */}
       </SidebarGroup>
       <div className="flex-1 overflow-y-auto mb-2 relative">
         {isHistoryEmpty && !isPending ? (
@@ -83,27 +66,36 @@ export function ChatHistoryClient() {
             No search history
           </div>
         ) : (
-          <ul className="px-2 py-2">
+          <ul className="py-5">
             {chats.map(
               (chat: any) =>
                 chat && (
                   <li
                     key={chat.id}
-                    className="mb-2 flex items-center justify-between group"
+                    className="mb-2 flex items-center justify-between group/li transition-all duration-500 ease-in-out"
                   >
                     <Link
                       href={`/chat/${chat.id}`}
-                      className="block px-2 py-1 rounded hover:bg-muted/30 truncate font-medium flex-1"
+                      className="px-4 py-1 rounded-lg dark:hover:bg-sidebar-accent/60 hover:bg-sidebar-border group/link space-x-3 flex-1 flex items-center"
                     >
-                      {chat.title}
+                      <span className="font-medium text-base scale-105 font-space dark:text-sidebar-foreground/70 text-sidebar-foreground group-hover/link:text-sidebar-foreground truncate tracking-snug">
+                        {chat.title}
+                      </span>
+                      <Badge
+                        variant="default"
+                        className="flex items-center group/badge h-5 px-1 rounded-lg bg-orange-200/60 dark:bg-zinc-900 border-[0.33px] dark:border-zinc-700"
+                      >
+                        <span className="font-sans group-hover/badge:text-orange-200 dark:text-teal-300/80 text-xs text-sidebar-foreground uppercase">
+                          {chat.assistantName}
+                        </span>
+                        <span className="font-light hidden text-sm text-indigo-200 tracking-tight">
+                          {chat.assistantName}
+                        </span>
+                      </Badge>
                     </Link>
-                    <div className="text-xs text-muted-foreground pl-2">
-                      {chat.assistantName && (
-                        <span className="mr-2">{chat.assistantName}</span>
-                      )}
-                    </div>
+
                     <button
-                      className="ml-2 rounded text-red-500 opacity-0 group-hover:opacity-100 transition"
+                      className="px-4 rounded text-rose-500 opacity-0 group-hover:opacity-100 transition"
                       title="Delete conversation"
                       onClick={async e => {
                         e.preventDefault()
@@ -111,13 +103,11 @@ export function ChatHistoryClient() {
                         setChats(chats =>
                           chats.filter((c: any) => c.id !== chat.id)
                         )
-                        // if (confirm('Delete this conversation?')) {
-                        //   await deleteConversation(chat.id)
-
-                        // }
                       }}
                     >
-                      x
+                      <span className="text-lg font-medium text-sidebar-primary-foreground/30 group-hover/li:text-sidebar-primary-foreground">
+                        -
+                      </span>
                     </button>
                   </li>
                 )

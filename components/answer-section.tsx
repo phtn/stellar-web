@@ -45,7 +45,7 @@ export function AnswerSection({
   useEffect(() => {
     if (content) {
       const date = new Date()
-      setTimestamp(format(date, 'Pp'))
+      setTimestamp(format(date, 'p'))
     }
   }, [content])
 
@@ -61,14 +61,13 @@ export function AnswerSection({
   const [isPlaying, setIsPlaying] = useState(false)
 
   const handleVoicePlayback = useCallback(() => {
-    console.log(audioUrl)
     if (!audioRef.current) return
     if (isPlaying) {
       audioRef.current.pause()
     } else {
       audioRef.current.play()
     }
-  }, [isPlaying, audioUrl])
+  }, [isPlaying])
 
   const onAudioEnded = () => setIsPlaying(false)
   const onAudioPlay = () => setIsPlaying(true)
@@ -77,21 +76,29 @@ export function AnswerSection({
   const VoicePlayback = useCallback(
     () => (
       <IconBtn
+        solid
+        size={28}
         btnProps={{
           onClick: handleVoicePlayback,
           'aria-label': isPlaying ? 'Pause voice' : 'Play voice'
         }}
-        icon={audioStatus === 'playing' ? 'spinners-bars-middle' : 'tri'}
-        solid
+        hoverStyle="group-hover:text-zinc-100/40"
+        icon={
+          audioStatus === 'playable'
+            ? 'tri'
+            : audioStatus === 'playing'
+              ? 'spinners-bars-middle'
+              : 'spinners-3-dots-move'
+        }
         iconStyle={cn(
-          'text-indigo-500 dark:text-indigo-500 size-6 scale-50 transition-all duration-500',
+          'text-indigo-500 group-hover:text-teal-500 dark:text-indigo-500 size-6',
           {
             'text-stone-400 size-2.5': isTTSPlaying,
-            'scale-[10%] dark:text-indigo-400': audioStatus === 'receiving',
-            'scale-[40%] dark:text-indigo-400': audioStatus === 'uploading',
-            'scale-[60%] dark:text-cyan-500': audioStatus === 'uploaded',
-            'scale-100 dark:text-teal-400': audioStatus === 'playable',
-            'dark:text-indigo-400 size-6': audioStatus === 'playing'
+            'size-2.5 dark:text-indigo-300': audioStatus === 'receiving',
+            'size-2.5 dark:text-orange-200': audioStatus === 'uploading',
+            'size-2.5 dark:text-cyan-500': audioStatus === 'uploaded',
+            'dark:text-teal-400 size-3.5': audioStatus === 'playable',
+            'dark:text-indigo-400 size-4': audioStatus === 'playing'
           }
         )}
       />
@@ -99,31 +106,10 @@ export function AnswerSection({
     [handleVoicePlayback, isPlaying, isTTSPlaying, audioStatus]
   )
 
-  const VoiceStatusIndicator = () => {
-    switch (audioStatus) {
-      case 'receiving':
-        return (
-          <span className="text-xs text-blue-300 scale">Generating...</span>
-        )
-      case 'uploading':
-        return <span className="text-xs text-orange-300">Uploading...</span>
-      case 'uploaded':
-        return <span className="text-xs text-green-400">Uploaded</span>
-      case 'playable':
-        return <span className="text-xs text-green-500">Ready</span>
-      case 'playing':
-        return <span className="text-xs text-indigo-400">Playing</span>
-      case 'error':
-        return <span className="text-xs text-red-400">Audio Error</span>
-      default:
-        return null
-    }
-  }
-
   const message = content ? (
-    <div className="flex flex-col gap-2">
-      <div className="flex flex-row items-center space-x-2">
-        <Avatar className="size-6 border -ml-6">
+    <div className="flex flex-col pe-16">
+      <div className="flex flex-row items-center">
+        <Avatar className="size-6 -ml-6">
           {false && <AvatarImage src={''} alt={''} />}
           <AvatarFallback className="dark:bg-background/50 relative">
             <Icon
@@ -136,20 +122,11 @@ export function AnswerSection({
         <VoicePlayback />
         {/* <VoiceStatusIndicator /> */}
       </div>
-      <div className="p-4 border border-muted/20 dark:bg-sidebar bg-muted/80 rounded-2xl max-w-prose ">
+      <div className="p-6 border border-muted/20 dark:bg-sidebar bg-muted/80 rounded-2xl max-w-prose ">
         <AssistantMessage message={content} />
       </div>
-      {audioUrl && (
-        <audio
-          ref={audioRef}
-          src={audioUrl}
-          style={{ display: 'none' }}
-          onEnded={onAudioEnded}
-          onPlay={onAudioPlay}
-          onPause={onAudioPause}
-        />
-      )}
-      <div className="flex items-center space-x-6 justify-start">
+
+      <div className="flex items-center space-x-6 justify-end">
         <div className="ps-2 font-space tracking-wider text-xs opacity-50">
           {timestamp}
         </div>
@@ -160,6 +137,16 @@ export function AnswerSection({
             reload={handleReload}
             messageId={messageId}
             enableShare={enableShare}
+          />
+        )}
+        {audioUrl && (
+          <audio
+            ref={audioRef}
+            src={audioUrl}
+            style={{ display: 'none' }}
+            onEnded={onAudioEnded}
+            onPlay={onAudioPlay}
+            onPause={onAudioPause}
           />
         )}
       </div>

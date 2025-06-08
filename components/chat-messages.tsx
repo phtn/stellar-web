@@ -27,7 +27,6 @@ interface ChatMessagesProps {
     options?: ChatRequestOptions
   ) => Promise<string | null | undefined>
   isTTSPlaying?: boolean
-  audioUrls?: Record<string, string>
   audioStates?: Record<string, { url?: string; status: string; error?: string }>
 }
 
@@ -82,6 +81,18 @@ export function ChatMessages({
     }
   }, [data])
 
+  // Scroll to bottom on initial load or when new messages are added
+  useEffect(() => {
+    const container = scrollContainerRef.current
+    if (!container) return
+    // Only scroll if content overflows
+    if (container.scrollHeight > container.clientHeight) {
+      setTimeout(() => {
+        container.scrollTop = container.scrollHeight
+      }, 0)
+    }
+  }, [sections.length, scrollContainerRef])
+
   if (!sections.length) return null
 
   // Get all messages as a flattened array
@@ -123,12 +134,9 @@ export function ChatMessages({
       id="scroll-container"
       ref={scrollContainerRef}
       aria-roledescription="chat messages"
-      className={cn(
-        'relative size-full pt-14',
-        sections.length > 0 ? 'flex-1 overflow-y-auto' : ''
-      )}
+      className={cn('w-full h-full flex-1 overflow-y-auto pt-14')}
     >
-      <div className="relative mx-auto w-full max-w-3xl px-4">
+      <div className="relative mx-auto w-full  max-w-3xl px-4">
         {sections.map((section, sectionIndex) => (
           <div
             key={section.id}

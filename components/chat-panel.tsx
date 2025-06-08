@@ -115,7 +115,7 @@ export function ChatPanel({
         }}
         solid={!voiceRecording}
         iconSize={20}
-        iconStyle={cn({
+        iconStyle={cn('group-hover:text-sky-600', {
           'size-5 text-indigo-400 dark:text-indigo-500': voiceRecording
         })}
         withShadow={voiceRecording}
@@ -134,6 +134,10 @@ export function ChatPanel({
         type: isLoading ? 'button' : 'submit'
       }}
       solid={!voiceRecording}
+      iconStyle={cn('text-teal-300 ', {
+        'text-zinc-800':
+          (input.length === 0 && !isLoading) || isToolInvocationInProgress()
+      })}
       // iconStyle={cn(
       //   'text-teal-800/40 dark:text-teal-200',
       //   'disabled:text-foreground/80 disabled:bg-foreground/20 rounded-xl',
@@ -254,7 +258,7 @@ export function ChatPanel({
               />
               <ToggleFeature
                 label="Code"
-                icon="phone-bold"
+                icon="ai-coder"
                 fn={() => console.log('')}
               />
             </div>

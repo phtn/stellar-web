@@ -63,12 +63,12 @@ export const IconBtn = ({
           className={cn(
             'absolute z-0',
             'origin-center scale-0 opacity-20',
-            'transition-all will-change-transform duration-300',
+            'transition-all will-change-transform duration-300 ease-in-out',
             'group-hover:scale-100 group-hover:opacity-100',
             'pointer-events-none shrink-0',
             // LIGHT
             'text-white/5',
-            'group-hover:text-stone-200/80',
+            'group-hover:text-zinc-300/60',
             // DARK
             'dark:group-hover:text-zinc-950/40',
             {

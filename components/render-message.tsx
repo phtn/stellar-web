@@ -38,10 +38,6 @@ export function RenderMessage({
   audioUrl,
   audioStatus
 }: RenderMessageProps) {
-  useEffect(() => {
-    console.log(audioUrl)
-  }, [audioUrl])
-
   const relatedQuestions = useMemo(
     () =>
       message.annotations?.filter(

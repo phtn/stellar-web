@@ -71,10 +71,11 @@ export default async function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body
         className={cn(
-          'min-h-screen flex flex-col font-sans antialiased',
+          'min-h-screen h-full flex flex-col font-sans antialiased',
           fontSans.variable,
           space.variable
         )}
+        style={{ minHeight: '100vh', height: '100vh' }}
       >
         <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" />
         <AuthGate />
@@ -87,9 +88,9 @@ export default async function RootLayout({
           >
             <SidebarProvider defaultOpen>
               <AppSidebar />
-              <div className="flex flex-col flex-1">
+              <div className="flex flex-col flex-1 h-full min-h-0">
                 <Header user={user} />
-                <main className="flex flex-1 min-h-0">
+                <main className="flex flex-1 min-h-0 h-full">
                   <ArtifactRoot>{children}</ArtifactRoot>
                 </main>
               </div>
