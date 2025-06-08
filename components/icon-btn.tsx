@@ -6,6 +6,8 @@ import type { ButtonProps } from './ui'
 
 interface IconBtnProps {
   icon: IconName
+  size?: number
+  iconSize?: number
   solid?: boolean
   iconStyle?: ClassName
   shadowStyle?: ClassName
@@ -16,7 +18,9 @@ interface IconBtnProps {
 }
 export const IconBtn = ({
   icon,
+  iconSize = 16,
   solid,
+  size = 44,
   iconStyle,
   withShadow,
   shadowStyle,
@@ -37,33 +41,34 @@ export const IconBtn = ({
         {withShadow && (
           <Icon
             solid
-            size={44}
+            size={size}
             name="squircle"
             className={cn(
               'absolute z-0',
-              'origin-center opacity-10',
+              'origin-center opacity-20',
               'pointer-events-none shrink-0 text-stone-400/80',
               {
-                'dark:text-zinc-950/60 text-neutral-200 opacity-80':
+                'dark:text-zinc-950/90 text-neutral-200 opacity-80':
                   !btnProps.disabled
               },
+              'dark:text-zinc-950/40 dark:opacity-100',
               shadowStyle
             )}
           />
         )}
         <Icon
           solid
-          size={44}
+          size={size}
           name="squircle"
           className={cn(
             'absolute z-0',
             'origin-center scale-0 opacity-20',
-            'transition-all will-change-transform duration-300',
+            'transition-all will-change-transform duration-300 ease-in-out',
             'group-hover:scale-100 group-hover:opacity-100',
             'pointer-events-none shrink-0',
             // LIGHT
             'text-white/5',
-            'group-hover:text-stone-200/50',
+            'group-hover:text-zinc-300/60',
             // DARK
             'dark:group-hover:text-zinc-950/40',
             {
@@ -73,23 +78,26 @@ export const IconBtn = ({
           )}
         />
         <Icon
-          size={16}
+          size={iconSize}
           name={icon}
           solid={solid}
           className={cn(
             'relative z-10',
             // LIGHT
-            'text-neutral-500',
+            'text-neutral-700',
             'group-hover:text-sky-300',
             // DARK
-            'dark:text-cyan-100/60 ',
+            'dark:text-sidebar-accent-foreground/70',
             'transition-all duration-300',
-            'group-disabled:text-neutral-500',
+
             {
               'dark:group-hover:text-orange-300/70':
                 withShadow && btnProps.disabled,
               'group-hover:-translate-y-1': animated && !btnProps.disabled,
-              'group-hover:text-cyan-100': withShadow && !btnProps.disabled
+              'group-hover:text-cyan-100': withShadow && !btnProps.disabled,
+              'text-neutral-400 group-hover:text-neutral-500':
+                btnProps.disabled,
+              'text-neutral-700 group-hover:text-sky-300/90': !btnProps.disabled
             },
 
             iconStyle

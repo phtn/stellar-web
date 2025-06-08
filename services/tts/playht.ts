@@ -11,7 +11,6 @@ import WebSocket from 'ws'
 
 const apiKey = process.env.PLAYHT_API_KEY
 const userId = process.env.PLAYHT_USER_ID
-const defaultVoiceId = process.env.MADDIE_ID
 
 const POLLING_INTERVAL = 10 // ms
 
@@ -70,7 +69,7 @@ export class PlayHT_TTS_Service {
 
   async streamSpeech(
     text: string,
-    voiceId: string = defaultVoiceId!,
+    voiceId: string,
     options: Partial<PlayHTStreamRequest> = {}
   ): Promise<Buffer> {
     const requestBody: PlayHTStreamRequest = {
@@ -107,7 +106,7 @@ export class PlayHT_TTS_Service {
 
   async *streamDialog(
     textStream: AsyncIterable<string>,
-    voiceId: string = defaultVoiceId!,
+    voiceId: string,
     engine: PlayHTDialogEngine,
     options: Partial<PlayHTStreamRequest> = {}
   ): AsyncGenerator<Buffer> {
@@ -191,7 +190,7 @@ export class PlayHT_TTS_Service {
 
   private async setupWebSocketConnection(
     ws: WebSocket,
-    voiceId: string = defaultVoiceId!,
+    voiceId: string,
     options: Partial<PlayHTStreamRequest> = {}
   ): Promise<void> {
     return new Promise<void>((resolve, reject) => {

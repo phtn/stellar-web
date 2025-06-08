@@ -52,7 +52,10 @@ export function MessageActions({
         onClick={handleCopy}
         className="rounded-full"
       >
-        <Icon name="copy-outline" className="size-4 text-stone-500" />
+        <Icon
+          name="copy-outline"
+          className="size-4 dark:text-sidebar-foreground text-stone-500"
+        />
       </Button>
       {enableShare && chatId && <ChatShare chatId={chatId} />}
     </div>

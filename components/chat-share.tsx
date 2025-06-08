@@ -1,7 +1,7 @@
 'use client'
 
 import { shareChat } from '@/lib/actions/chat'
-import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
+import { useCopy } from '@/lib/hooks/use-copy'
 import { cn } from '@/lib/utils'
 import { Share } from 'lucide-react'
 import { useState, useTransition } from 'react'
@@ -26,7 +26,7 @@ interface ChatShareProps {
 export function ChatShare({ chatId, className }: ChatShareProps) {
   const [open, setOpen] = useState(false)
   const [pending, startTransition] = useTransition()
-  const { copyToClipboard } = useCopyToClipboard({ timeout: 1000 })
+  const { copy } = useCopy({ timeout: 1000 })
   const [shareUrl, setShareUrl] = useState('')
 
   const handleShare = async () => {
@@ -50,7 +50,7 @@ export function ChatShare({ chatId, className }: ChatShareProps) {
 
   const handleCopy = () => {
     if (shareUrl) {
-      copyToClipboard(shareUrl)
+      copy(shareUrl)
       toast.success('Link copied to clipboard')
       setOpen(false)
     } else {

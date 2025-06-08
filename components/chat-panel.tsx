@@ -8,6 +8,7 @@ import { Babes, ToggleFeature } from './babes'
 import { EmptyScreen } from './empty-screen'
 import { IconBtn } from './icon-btn'
 import { Button } from './ui/button'
+import { Voices } from '@/lib/store/voiceSettings'
 
 interface ChatPanelProps {
   input: string
@@ -26,6 +27,7 @@ interface ChatPanelProps {
   scrollContainerRef: React.RefObject<HTMLDivElement>
   voiceToggle: VoidFunction
   voiceRecording: boolean
+  setVoice: (voice: Voices) => void
 }
 
 export function ChatPanel({
@@ -40,7 +42,8 @@ export function ChatPanel({
   showScrollToBottomButton,
   scrollContainerRef,
   voiceToggle,
-  voiceRecording
+  voiceRecording,
+  setVoice
 }: ChatPanelProps) {
   const [showEmptyScreen, setShowEmptyScreen] = useState(false)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -111,11 +114,10 @@ export function ChatPanel({
           disabled: false
         }}
         solid={!voiceRecording}
-        iconStyle={
-          voiceRecording
-            ? 'size-3.5 text-indigo-400 dark:text-indigo-500'
-            : undefined
-        }
+        iconSize={20}
+        iconStyle={cn('group-hover:text-sky-600', {
+          'size-5 text-indigo-400 dark:text-indigo-500': voiceRecording
+        })}
         withShadow={voiceRecording}
         icon={voiceRecording ? 'spinners-bars-middle' : 'microphone-noir'}
       />
@@ -132,16 +134,31 @@ export function ChatPanel({
         type: isLoading ? 'button' : 'submit'
       }}
       solid={!voiceRecording}
-      iconStyle={cn(
-        'text-teal-200 dark:text-teal-200',
-        'disabled:text-foreground/80 disabled:bg-foreground/20 rounded-xl',
-        'dark:group-hover:text-cyan-200'
-      )}
+      iconStyle={cn('text-teal-300 ', {
+        'text-zinc-800':
+          (input.length === 0 && !isLoading) || isToolInvocationInProgress()
+      })}
+      // iconStyle={cn(
+      //   'text-teal-800/40 dark:text-teal-200',
+      //   'disabled:text-foreground/80 disabled:bg-foreground/20 rounded-xl',
+      //   'dark:group-hover:text-cyan-200'
+      // )}
       withShadow
       icon={isLoading ? 'spinners-ring' : 'arrow-up-broken'}
       shadowStyle="text-stone-950"
       animated
     />
+  )
+
+  const startVoiceChat = useCallback(
+    (voice: Voices) => {
+      append({
+        role: 'user',
+        content: "What's good?"
+      })
+      setVoice(voice)
+    },
+    [setVoice, append]
   )
 
   return (
@@ -151,7 +168,7 @@ export function ChatPanel({
         messages.length > 0 ? 'sticky bottom-0 px-2 pb-4' : 'px-6'
       )}
     >
-      {messages.length === 0 && <Babes />}
+      {messages.length === 0 && <Babes startVoiceChat={startVoiceChat} />}
       <form
         onSubmit={handleSubmit}
         className={cn('max-w-3xl w-full mx-auto relative')}
@@ -231,17 +248,17 @@ export function ChatPanel({
               {/* <ModelSelector models={models ?? []} /> */}
               <ToggleFeature
                 label="Search"
-                icon="phone-bold"
+                icon="search"
                 fn={() => console.log('')}
               />
               <ToggleFeature
                 label="Think"
-                icon="phone-bold"
+                icon="ai-mind"
                 fn={() => console.log('')}
               />
               <ToggleFeature
                 label="Code"
-                icon="phone-bold"
+                icon="ai-coder"
                 fn={() => console.log('')}
               />
             </div>

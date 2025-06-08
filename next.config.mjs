@@ -1,4 +1,8 @@
 /** @type {import('next').NextConfig} */
+import fs from 'fs'
+
+const isDev = process.env.NODE_ENV === 'development'
+
 const nextConfig = {
   images: {
     remotePatterns: [
@@ -15,6 +19,12 @@ const nextConfig = {
         pathname: '/v0/**' // Google user content often follows this pattern
       }
     ]
+  },
+  experimental: {
+    // https: {
+    //   key: fs.readFileSync('./certs/localhost-key.pem'),
+    //   cert: fs.readFileSync('./certs/localhost-cert.pem')
+    // }
   }
 }
 

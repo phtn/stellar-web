@@ -21,7 +21,10 @@ export const RetryButton = ({ reload, messageId }: RetryButtonProps) => {
       className="rounded-full"
       aria-label={`Retry from message ${messageId}`}
     >
-      <Icon name="refresh" className="size-4 text-stone-700" />
+      <Icon
+        name="refresh"
+        className="size-4 dark:text-sidebar-foreground text-stone-700"
+      />
       <span className="sr-only">Retry</span>
     </Button>
   )

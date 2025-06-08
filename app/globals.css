@@ -121,13 +121,14 @@
   }
   body {
     @apply bg-background text-foreground;
-    :-webkit-scrollbar {
+
+    ::-webkit-scrollbar-track {
       display: none;
     }
-    :-webkit-scrollbar-track {
+    ::-webkit-scrollbar-thumb {
       display: none;
     }
-    :-webkit-scrollbar-thumb {
+    ::-webkit-scrollbar {
       display: none;
     }
   }

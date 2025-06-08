@@ -1,15 +1,30 @@
 'use client'
 
-import { CHAT_ID } from '@/lib/constants'
+import { getVoice } from '@/app/actions'
+import {
+  getMessages,
+  getRecentConversationsForUser,
+  updateMessageWithAudioUrl,
+  uploadVoiceResponse
+} from '@/lib/firebase/conversations'
+import { useAudioPlayback } from '@/lib/hooks/use-audio-playback'
+import { useAutoScroll } from '@/lib/hooks/use-auto-scroll'
+import { useConversation } from '@/lib/hooks/use-conversation'
+import { useVoiceRecorder } from '@/lib/hooks/use-voice-recorder'
 import { useVoiceSettings } from '@/lib/store/voiceSettings'
-import { Model } from '@/lib/types/models'
+import type { Model } from '@/lib/types/models'
 import { cn } from '@/lib/utils'
-import { SpeechToTextService } from '@/services/stt'
 import { useChat } from '@ai-sdk/react'
 import { ChatRequestOptions } from 'ai'
-import { Message } from 'ai/react'
-import Image from 'next/image'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { Message } from 'ai/react'
+import {
+  type FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react'
 import { toast } from 'sonner'
 import { ChatMessages } from './chat-messages'
 import { ChatPanel } from './chat-panel'
@@ -22,248 +37,109 @@ interface ChatSection {
   assistantMessages: Message[]
 }
 
-type RecordingMethod = 'browser' | 'manual'
+// Add a function to detect actions/gestures
+function isActionOrGesture(content: string) {
+  const trimmed = content.trim()
+  // Matches *action*, /action/, (action), possibly with whitespace
+  return (
+    /^\*.*\*$/.test(trimmed) ||
+    /^\/.*\/$/.test(trimmed) ||
+    /^\(.*\)$/.test(trimmed)
+  )
+}
 
-export function Chat({
-  id,
-  savedMessages = [],
-  query,
-  models
-}: {
+interface IChat {
   id: string
-  savedMessages?: Message[]
   query?: string
   models?: Model[]
-}) {
-  const scrollContainerRef = useRef<HTMLDivElement | null>(null)
-  const [isAtBottom, setIsAtBottom] = useState(true)
+  savedMessages?: Message[]
+}
+export function Chat({ id, savedMessages = [], query, models }: IChat) {
+  // Use the new auto scroll hook
+  const { scrollContainerRef, isAtBottom, scrollToSection } = useAutoScroll()
+
+  // Add audioRef for useAudioPlayback and <audio>
   const audioRef = useRef<HTMLAudioElement>(null)
-  const [isGeneratingAudio, setIsGeneratingAudio] = useState<boolean>(false)
-  const [isTTSPlaying, setIsTTSPlaying] = useState(false)
 
-  const [isRecording, setIsRecording] = useState<boolean>(false)
-  const [recordingMethod] = useState<RecordingMethod>('browser')
-  const [transcript, setTranscript] = useState<string>('')
-  const [isProcessingAudio, setIsProcessingAudio] = useState<boolean>(false)
-
-  // Browser Speech Recognition (now using SpeechToTextService)
-  const sttServiceRef = useRef<SpeechToTextService | null>(null)
-
-  // Manual recording
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
-  const audioChunksRef = useRef<Blob[]>([])
-  const streamRef = useRef<MediaStream | null>(null)
-
+  // Use the new hook for Firestore logic
   const {
-    messages,
+    conversationId,
+    setConversationId,
+    hasStarted,
+    setHasStarted,
+    createConversation,
+    addMessage
+  } = useConversation({ id, savedMessages })
+
+  // Use useChat for chat UI logic
+  const {
     input,
     setInput,
     handleInputChange,
     handleSubmit,
     status,
-    setMessages,
     stop,
     append,
     data,
     setData,
     addToolResult,
-    reload
+    reload,
+    messages,
+    setMessages
   } = useChat({
     initialMessages: savedMessages,
-    id: CHAT_ID,
-    body: {
-      id
-    },
+    id,
+    body: { id },
     onFinish: async msg => {
-      if (msg.role === 'assistant') {
-        console.log('generating speech')
-        await generateSpeech(msg.content)
+      if (
+        msg.role === 'assistant' &&
+        msg.content.trim() &&
+        !isActionOrGesture(msg.content)
+      ) {
+        setPendingAssistantMsg(msg)
       }
-      // window.history.replaceState({}, '', `/search/${id}`)
-      // window.dispatchEvent(new CustomEvent('chat-history-updated'))
     },
     onError: error => {
       toast.error(`Error in chat: ${error.message}`)
     },
-    sendExtraMessageFields: false, // Disable extra message fields,
+    sendExtraMessageFields: false,
     experimental_throttle: 100
   })
 
-  const { voiceEngine, outputMode } = useVoiceSettings()
+  const { voiceEngine, outputMode, voice, setVoice } = useVoiceSettings()
 
-  const generateSpeech = useCallback(async (content: string): Promise<void> => {
-    setIsGeneratingAudio(true)
-    setIsTTSPlaying(true)
-    try {
-      const cleanedContent = cleanForTTS(content)
-      const response = await fetch('/api/tts/playht', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: cleanedContent, voiceEngine, outputMode })
-      })
+  // Use the new audio playback hook
+  const {
+    audioStates,
+    setAudioStates,
+    generateSpeech,
+    isTTSPlaying,
+    isGeneratingAudio
+  } = useAudioPlayback({
+    voiceEngine,
+    outputMode,
+    voice,
+    audioRef,
+    uploadVoiceResponse,
+    updateMessageWithAudioUrl,
+    cleanForTTS
+  })
 
-      if (!response.ok) {
-        throw new Error('TTS request failed')
-      }
+  const [pendingAssistantMsg, setPendingAssistantMsg] =
+    useState<Message | null>(null)
 
-      const audioBlob = await response.blob()
-      const audioUrl = URL.createObjectURL(audioBlob)
+  // Use the new voice recorder hook
+  const {
+    isRecording,
+    isProcessingAudio,
+    handleRecordingToggle,
+    initializeSTT
+  } = useVoiceRecorder({ setInput })
 
-      if (audioRef.current) {
-        audioRef.current.src = audioUrl
-        await audioRef.current.play()
-
-        audioRef.current.addEventListener(
-          'ended',
-          () => {
-            URL.revokeObjectURL(audioUrl)
-            setIsTTSPlaying(false)
-          },
-          { once: true }
-        )
-      } else {
-        setIsTTSPlaying(false)
-      }
-    } catch (error) {
-      console.error('Audio generation/playback failed:', error)
-      setIsTTSPlaying(false)
-    } finally {
-      setIsGeneratingAudio(false)
-    }
-  }, [voiceEngine, outputMode])
-
-  // ASR
+  // Initialize browser STT service on mount
   useEffect(() => {
-    if (
-      typeof window !== 'undefined' &&
-      (window.SpeechRecognition || window.webkitSpeechRecognition)
-    ) {
-      sttServiceRef.current = new SpeechToTextService({
-        lang: 'en-US',
-        interimResults: true,
-        continuous: false,
-        maxDurationMs: 10000, // 10 seconds max recording duration
-        onResult: (finalTranscript, interimTranscript) => {
-          if (finalTranscript) {
-            setTranscript('')
-            setInput(prev => prev + finalTranscript + '. ')
-            setIsRecording(false)
-          } else {
-            setTranscript(interimTranscript)
-          }
-        },
-        onError: (error) => {
-          console.log('Speech recognition error:', error)
-          setIsRecording(false)
-          setTranscript('')
-        },
-        onEnd: () => {
-          setIsRecording(false)
-          setTranscript('')
-        }
-      })
-    }
-  }, [setInput])
-
-  const startBrowserRecording = (): void => {
-    if (sttServiceRef.current && !isRecording) {
-      setIsRecording(true)
-      setTranscript('')
-      sttServiceRef.current.start()
-    }
-  }
-  const stopBrowserRecording = (): void => {
-    if (sttServiceRef.current && isRecording) {
-      sttServiceRef.current.stop()
-    }
-  }
-
-  const startManualRecording = async (): Promise<void> => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      streamRef.current = stream
-
-      const mediaRecorder = new MediaRecorder(stream)
-      mediaRecorderRef.current = mediaRecorder
-      audioChunksRef.current = []
-
-      mediaRecorder.addEventListener('dataavailable', event => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data)
-        }
-      })
-
-      mediaRecorder.addEventListener('stop', async () => {
-        const audioBlob = new Blob(audioChunksRef.current, {
-          type: 'audio/wav'
-        })
-        await processAudioFile(audioBlob)
-
-        // Clean up
-        if (streamRef.current) {
-          streamRef.current.getTracks().forEach(track => track.stop())
-          streamRef.current = null
-        }
-      })
-
-      mediaRecorder.start()
-      setIsRecording(true)
-    } catch (error) {
-      console.error('Error accessing microphone:', error)
-    }
-  }
-
-  const stopManualRecording = (): void => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop()
-      setIsRecording(false)
-    }
-  }
-
-  const processAudioFile = async (audioBlob: Blob): Promise<void> => {
-    setIsProcessingAudio(true)
-    try {
-      const formData = new FormData()
-      formData.append('audio', audioBlob, 'recording.wav')
-
-      const response = await fetch('/api/stt', {
-        method: 'POST',
-        body: formData
-      })
-
-      const result = await response.json()
-
-      if (result.success && result.text) {
-        setInput(prev => prev + result.text)
-      } else {
-        console.error('STT failed:', result.error)
-      }
-    } catch (error) {
-      console.error('Error processing audio:', error)
-    } finally {
-      setIsProcessingAudio(false)
-    }
-  }
-
-  const handleRecordingToggle = (): void => {
-    if (recordingMethod === 'browser' && isBrowserSpeechSupported) {
-      if (isRecording) {
-        stopBrowserRecording()
-      } else {
-        startBrowserRecording()
-      }
-    } else {
-      if (isRecording) {
-        stopManualRecording()
-      } else {
-        startManualRecording()
-      }
-    }
-  }
-  const isBrowserSpeechSupported =
-    typeof window !== 'undefined' &&
-    (window.SpeechRecognition || window.webkitSpeechRecognition)
-  const isLoading = status === 'submitted' || status === 'streaming'
+    initializeSTT()
+  }, [initializeSTT])
 
   // Convert messages array to sections array
   const sections = useMemo<ChatSection[]>(() => {
@@ -296,85 +172,54 @@ export function Chat({
     return result
   }, [messages])
 
-  // Detect if scroll container is at the bottom
+  // Replace scroll-to-section effect with:
   useEffect(() => {
-    const container = scrollContainerRef.current
-    if (!container) return
-
-    const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = container
-      const threshold = 50 // threshold in pixels
-      if (scrollHeight - scrollTop - clientHeight < threshold) {
-        setIsAtBottom(true)
-      } else {
-        setIsAtBottom(false)
-      }
-    }
-
-    container.addEventListener('scroll', handleScroll, { passive: true })
-    handleScroll() // Set initial state
-
-    return () => container.removeEventListener('scroll', handleScroll)
-  }, [])
-
-  // Scroll to the section when a new user message is sent
-  useEffect(() => {
-    if (sections.length > 0) {
+    if (messages.length > 0) {
       const lastMessage = messages[messages.length - 1]
       if (lastMessage && lastMessage.role === 'user') {
-        // If the last message is from user, find the corresponding section
-        const sectionId = lastMessage.id
-        requestAnimationFrame(() => {
-          const sectionElement = document.getElementById(`section-${sectionId}`)
-          sectionElement?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-        })
+        scrollToSection(lastMessage.id)
       }
     }
-  }, [sections, messages])
+  }, [messages, scrollToSection])
 
-  useEffect(() => {
-    setMessages(savedMessages)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
-
-  const onQuerySelect = (query: string) => {
-    append({
-      role: 'user',
-      content: query
-    })
-  }
-
-  const handleUpdateAndReloadMessage = async (
-    messageId: string,
-    newContent: string
-  ) => {
-    setMessages(currentMessages =>
-      currentMessages.map(msg =>
-        msg.id === messageId ? { ...msg, content: newContent } : msg
-      )
-    )
-
-    try {
-      const messageIndex = messages.findIndex(msg => msg.id === messageId)
-      if (messageIndex === -1) return
-
-      const messagesUpToEdited = messages.slice(0, messageIndex + 1)
-
-      setMessages(messagesUpToEdited)
-
-      setData(undefined)
-
-      await reload({
-        body: {
-          chatId: id,
-          regenerate: true
-        }
+  const onQuerySelect = useCallback(
+    (query: string) => {
+      append({
+        role: 'user',
+        content: query
       })
-    } catch (error) {
-      console.error('Failed to reload after message update:', error)
-      toast.error(`Failed to reload conversation: ${(error as Error).message}`)
-    }
-  }
+    },
+    [append]
+  )
+
+  const handleUpdateAndReloadMessage = useCallback(
+    async (messageId: string, newContent: string) => {
+      setMessages(currentMessages =>
+        currentMessages.map(msg =>
+          msg.id === messageId ? { ...msg, content: newContent } : msg
+        )
+      )
+      try {
+        const messageIndex = messages.findIndex(msg => msg.id === messageId)
+        if (messageIndex === -1) return
+        const messagesUpToEdited = messages.slice(0, messageIndex + 1)
+        setMessages(messagesUpToEdited)
+        setData(undefined)
+        await reload({
+          body: {
+            chatId: id,
+            regenerate: true
+          }
+        })
+      } catch (error) {
+        console.error('Failed to reload after message update:', error)
+        toast.error(
+          `Failed to reload conversation: ${(error as Error).message}`
+        )
+      }
+    },
+    [messages, setMessages, setData, reload, id]
+  )
 
   const handleReloadFrom = async (
     messageId: string,
@@ -394,57 +239,170 @@ export function Chat({
     return await reload(options)
   }
 
-  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const onSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setData(undefined)
     handleSubmit(e)
   }
 
+  // Update handleFirstMessage to use hook
+  const handleFirstMessage = useCallback(
+    async (message: Message) => {
+      // Always call createConversation for the first user message
+      const userId = 'demo-user'
+      const assistantName = (await getVoice()) ?? 'Assistant'
+
+      try {
+        const convId = await createConversation(
+          userId,
+          message.content.slice(0, 32),
+          assistantName
+        )
+        setConversationId(convId)
+        await addMessage(convId, message.id, message.role, message.content)
+        setHasStarted(true)
+      } catch (err) {
+        console.error('[handleFirstMessage] createConversation error', err)
+      }
+    },
+    [createConversation, addMessage, setConversationId, setHasStarted]
+  )
+
+  // Update handleSubsequentMessage to use hook
+  const handleSubsequentMessage = useCallback(
+    async (message: Message) => {
+      if (conversationId) {
+        await addMessage(
+          conversationId,
+          message.id,
+          message.role,
+          message.content
+        )
+      }
+    },
+    [conversationId, addMessage]
+  )
+
+  // Intercept message sending
+  useEffect(() => {
+    if (!messages.length) return
+    const lastMessage = messages[messages.length - 1]
+    if (lastMessage.role === 'user') {
+      if (!hasStarted) {
+        console.log(
+          '[useEffect:messages] calling handleFirstMessage',
+          lastMessage
+        )
+        handleFirstMessage(lastMessage)
+      } else {
+        handleSubsequentMessage(lastMessage)
+      }
+    }
+  }, [messages, hasStarted, handleFirstMessage, handleSubsequentMessage])
+
+  // Only load Firestore messages on initial conversation load and if chat is empty
+  const initialLoadRef = useRef(false)
+
+  useEffect(() => {
+    if (conversationId && !initialLoadRef.current && messages.length === 0) {
+      ;(async () => {
+        const msgs = await getMessages(conversationId)
+        setMessages(
+          msgs.map((msg: any) => ({
+            id: msg.id,
+            role: msg.role,
+            content: msg.content
+            // Do not include audioUrl here
+          }))
+        )
+        initialLoadRef.current = true
+      })()
+    }
+  }, [conversationId, setMessages, messages.length])
+
+  // Fetch 10 recent conversations for context
+  const fetchRecentConversations = useCallback(async () => {
+    // TODO: Replace with actual user id from auth
+    const userId = 'demo-user'
+    const recentConvos = await getRecentConversationsForUser(userId, 10)
+    // Use recentConvos as needed for context
+    return recentConvos
+  }, [])
+
+  // Optionally, fetch recent conversations on mount or when needed
+  useEffect(() => {
+    fetchRecentConversations()
+  }, [fetchRecentConversations])
+
+  useEffect(() => {
+    // Initialize audioStates for messages with audioUrl (e.g., when loading a conversation)
+    if (savedMessages && savedMessages.length > 0) {
+      setAudioStates(prev => {
+        const newStates = { ...prev }
+        for (const msg of savedMessages as any[]) {
+          if (msg.audioUrl) {
+            newStates[msg.id] = { url: msg.audioUrl, status: 'playable' }
+          }
+        }
+        return newStates
+      })
+    }
+  }, [savedMessages, setAudioStates])
+
+  useEffect(() => {
+    if (conversationId && pendingAssistantMsg) {
+      ;(async () => {
+        await addMessage(
+          conversationId,
+          pendingAssistantMsg.id,
+          pendingAssistantMsg.role,
+          pendingAssistantMsg.content
+        )
+        await generateSpeech(pendingAssistantMsg, conversationId)
+        setPendingAssistantMsg(null)
+      })()
+    }
+  }, [conversationId, pendingAssistantMsg, generateSpeech, addMessage])
+
   return (
     <div
       className={cn(
-        'relative flex h-full min-w-0 flex-1 flex-col',
+        'relative flex h-full flex-1 flex-col',
         messages.length === 0 ? 'items-center justify-center' : ''
       )}
       data-testid="full-chat"
     >
-      <div className="absolute hidden z-0 opacity-40 left-0 top-0">
-        <Image
-          src={'/images/light.jpeg'}
-          width={0}
-          height={0}
-          alt=""
-          className="h-screen w-auto"
-          unoptimized
-        />
-      </div>
       <ChatMessages
-        sections={sections}
-        data={data}
-        onQuerySelect={onQuerySelect}
-        isLoading={isLoading || isGeneratingAudio}
         chatId={id}
-        addToolResult={addToolResult}
-        scrollContainerRef={scrollContainerRef}
-        onUpdateMessage={handleUpdateAndReloadMessage}
+        data={data}
+        sections={sections}
         reload={handleReloadFrom}
         isTTSPlaying={isTTSPlaying}
+        onQuerySelect={onQuerySelect}
+        addToolResult={addToolResult}
+        scrollContainerRef={scrollContainerRef}
+        isLoading={
+          status === 'submitted' || status === 'streaming' || isGeneratingAudio
+        }
+        onUpdateMessage={handleUpdateAndReloadMessage}
+        audioStates={audioStates}
       />
       <ChatPanel
-        input={input}
-        handleInputChange={handleInputChange}
-        handleSubmit={onSubmit}
-        isLoading={isLoading}
-        messages={messages}
-        setMessages={setMessages}
         stop={stop}
+        input={input}
         query={query}
         append={append}
         models={models}
+        messages={messages}
+        isLoading={status === 'submitted' || status === 'streaming'}
+        handleSubmit={onSubmit}
+        setMessages={setMessages}
+        voiceToggle={handleRecordingToggle}
+        handleInputChange={handleInputChange}
         showScrollToBottomButton={!isAtBottom}
         scrollContainerRef={scrollContainerRef}
-        voiceToggle={handleRecordingToggle}
         voiceRecording={isProcessingAudio || isRecording}
+        setVoice={setVoice}
       />
       <audio ref={audioRef} style={{ display: 'none' }} />
     </div>

@@ -6,7 +6,7 @@ export default async function Page() {
   PlayHTWsAuthManager.getInstance()
     .refresh()
     .then(() => {
-      console.clear()
+      console.log('init')
     })
     .finally(() => {
       console.log('Stream ON')

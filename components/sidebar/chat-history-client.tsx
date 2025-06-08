@@ -1,123 +1,64 @@
 'use client'
 
+import { SidebarGroup, SidebarGroupLabel } from '@/components/ui/sidebar'
 import {
-  SidebarGroup,
-  SidebarGroupLabel,
-  SidebarMenu
-} from '@/components/ui/sidebar'
+  deleteConversation,
+  getConversationsForUser
+} from '@/lib/firebase/conversations'
 import { Chat } from '@/lib/types'
+import Link from 'next/link'
 import { useCallback, useEffect, useRef, useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { ChatHistorySkeleton } from './chat-history-skeleton'
-import { ChatMenuItem } from './chat-menu-item'
-import { ClearHistoryAction } from './clear-history-action'
-
-// interface ChatHistoryClientProps {} // Removed empty interface
-
-interface ChatPageResponse {
-  chats: Chat[]
-  nextOffset: number | null
-}
+import { Badge } from '../ui/badge'
 
 export function ChatHistoryClient() {
-  // Removed props from function signature
   const [chats, setChats] = useState<Chat[]>([])
-  const [nextOffset, setNextOffset] = useState<number | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const loadMoreRef = useRef<HTMLDivElement>(null)
   const [isPending, startTransition] = useTransition()
 
-  const fetchInitialChats = useCallback(async () => {
+  // Fetch conversations from Firestore
+  const fetchConversations = useCallback(async () => {
     setIsLoading(true)
     try {
-      const response = await fetch(`/api/chats?offset=0&limit=20`)
-      if (!response.ok) {
-        throw new Error('Failed to fetch initial chat history')
-      }
-      const { chats: newChats, nextOffset: newNextOffset } =
-        (await response.json()) as ChatPageResponse
-
-      setChats(newChats)
-      setNextOffset(newNextOffset)
+      // TODO: Replace with actual user id from auth
+      const userId = 'demo-user'
+      const conversations = await getConversationsForUser(userId)
+      setChats(conversations)
     } catch (error) {
-      console.error('Failed to load initial chats:', error)
+      console.error('Failed to load conversations:', error)
       toast.error('Failed to load chat history.')
-      setNextOffset(null)
     } finally {
       setIsLoading(false)
     }
   }, [])
 
   useEffect(() => {
-    fetchInitialChats()
-  }, [fetchInitialChats])
+    fetchConversations()
+  }, [fetchConversations])
 
   useEffect(() => {
     const handleHistoryUpdate = () => {
       startTransition(() => {
-        fetchInitialChats()
+        fetchConversations()
       })
     }
     window.addEventListener('chat-history-updated', handleHistoryUpdate)
     return () => {
       window.removeEventListener('chat-history-updated', handleHistoryUpdate)
     }
-  }, [fetchInitialChats])
+  }, [fetchConversations])
 
-  const fetchMoreChats = useCallback(async () => {
-    if (isLoading || nextOffset === null) return
-
-    setIsLoading(true)
-    try {
-      const response = await fetch(`/api/chats?offset=${nextOffset}&limit=20`)
-      if (!response.ok) {
-        throw new Error('Failed to fetch more chat history')
-      }
-      const { chats: newChats, nextOffset: newNextOffset } =
-        (await response.json()) as ChatPageResponse
-
-      setChats(prevChats => [...prevChats, ...newChats])
-      setNextOffset(newNextOffset)
-    } catch (error) {
-      console.error('Failed to load more chats:', error)
-      toast.error('Failed to load more chat history.')
-      setNextOffset(null)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [nextOffset, isLoading])
-
-  useEffect(() => {
-    const observerRefValue = loadMoreRef.current
-    if (!observerRefValue || nextOffset === null || isPending) return
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !isLoading && !isPending) {
-          fetchMoreChats()
-        }
-      },
-      { threshold: 0.1 }
-    )
-
-    observer.observe(observerRefValue)
-
-    return () => {
-      if (observerRefValue) {
-        observer.unobserve(observerRefValue)
-      }
-    }
-  }, [fetchMoreChats, nextOffset, isLoading, isPending])
-
-  const isHistoryEmpty = !isLoading && !chats.length && nextOffset === null
+  const isHistoryEmpty = !isLoading && !chats.length
 
   return (
     <div className="flex flex-col flex-1 h-full">
       <SidebarGroup>
-        <div className="flex items-center justify-between w-full">
+        {/* <div className="flex items-center justify-between w-full">
           <SidebarGroupLabel className="p-0">History</SidebarGroupLabel>
           <ClearHistoryAction empty={isHistoryEmpty} />
-        </div>
+        </div> */}
       </SidebarGroup>
       <div className="flex-1 overflow-y-auto mb-2 relative">
         {isHistoryEmpty && !isPending ? (
@@ -125,11 +66,53 @@ export function ChatHistoryClient() {
             No search history
           </div>
         ) : (
-          <SidebarMenu>
+          <ul className="py-5">
             {chats.map(
-              (chat: Chat) => chat && <ChatMenuItem key={chat.id} chat={chat} />
+              (chat: any) =>
+                chat && (
+                  <li
+                    key={chat.id}
+                    className="mb-2 flex items-center justify-between group/li transition-all duration-500 ease-in-out"
+                  >
+                    <Link
+                      href={`/chat/${chat.id}`}
+                      className="px-4 py-1 rounded-lg dark:hover:bg-sidebar-accent/60 hover:bg-sidebar-border group/link space-x-3 flex-1 flex items-center"
+                    >
+                      <span className="font-medium text-base scale-105 font-space dark:text-sidebar-foreground/70 text-sidebar-foreground group-hover/link:text-sidebar-foreground truncate tracking-snug">
+                        {chat.title}
+                      </span>
+                      <Badge
+                        variant="default"
+                        className="flex items-center group/badge h-5 px-1 rounded-lg bg-orange-200/60 dark:bg-zinc-900 border-[0.33px] dark:border-zinc-700"
+                      >
+                        <span className="font-sans group-hover/badge:text-orange-200 dark:text-teal-300/80 text-xs text-sidebar-foreground uppercase">
+                          {chat.assistantName}
+                        </span>
+                        <span className="font-light hidden text-sm text-indigo-200 tracking-tight">
+                          {chat.assistantName}
+                        </span>
+                      </Badge>
+                    </Link>
+
+                    <button
+                      className="px-4 rounded text-rose-500 opacity-0 group-hover:opacity-100 transition"
+                      title="Delete conversation"
+                      onClick={async e => {
+                        e.preventDefault()
+                        await deleteConversation(chat.id)
+                        setChats(chats =>
+                          chats.filter((c: any) => c.id !== chat.id)
+                        )
+                      }}
+                    >
+                      <span className="text-lg font-medium text-sidebar-primary-foreground/30 group-hover/li:text-sidebar-primary-foreground">
+                        -
+                      </span>
+                    </button>
+                  </li>
+                )
             )}
-          </SidebarMenu>
+          </ul>
         )}
         <div ref={loadMoreRef} style={{ height: '1px' }} />
         {(isLoading || isPending) && (

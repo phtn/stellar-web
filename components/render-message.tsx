@@ -1,5 +1,5 @@
 import { ChatRequestOptions, JSONValue, Message, ToolInvocation } from 'ai'
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import { AnswerSection } from './answer-section'
 import { ReasoningSection } from './reasoning-section'
 import RelatedQuestions from './related-questions'
@@ -20,6 +20,8 @@ interface RenderMessageProps {
     options?: ChatRequestOptions
   ) => Promise<string | null | undefined>
   isTTSPlaying?: boolean
+  audioUrl?: string
+  audioStatus?: string
 }
 
 export function RenderMessage({
@@ -32,7 +34,9 @@ export function RenderMessage({
   addToolResult,
   onUpdateMessage,
   reload,
-  isTTSPlaying
+  isTTSPlaying,
+  audioUrl,
+  audioStatus
 }: RenderMessageProps) {
   const relatedQuestions = useMemo(
     () =>
@@ -153,6 +157,8 @@ export function RenderMessage({
                 isOpen={getIsOpen(messageId)}
                 key={`${messageId}-text-${index}`}
                 onOpenChange={handleOpenChange(messageId)}
+                audioUrl={audioUrl}
+                audioStatus={audioStatus}
               />
             )
           case 'reasoning':

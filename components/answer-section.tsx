@@ -1,13 +1,14 @@
 import { Icon } from '@/lib/icons'
+import { cn } from '@/lib/utils'
 import { ChatRequestOptions } from 'ai'
+import { format } from 'date-fns'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { CollapsibleMessage } from './collapsible-message'
 import { DefaultSkeleton } from './default-skeleton'
-import { BotMessage } from './message'
+import { IconBtn } from './icon-btn'
+import { AssistantMessage } from './message'
 import { MessageActions } from './message-actions'
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
-import { useEffect, useState } from 'react'
-import { cn } from '@/lib/utils'
-import { format } from 'date-fns'
 
 export type AnswerSectionProps = {
   content: string
@@ -21,6 +22,8 @@ export type AnswerSectionProps = {
     options?: ChatRequestOptions
   ) => Promise<string | null | undefined>
   isTTSPlaying?: boolean
+  audioUrl?: string
+  audioStatus?: string
 }
 
 export function AnswerSection({
@@ -31,7 +34,9 @@ export function AnswerSection({
   showActions = true, // Default to true for backward compatibility
   messageId,
   reload,
-  isTTSPlaying
+  isTTSPlaying,
+  audioUrl,
+  audioStatus
 }: AnswerSectionProps) {
   const enableShare = process.env.NEXT_PUBLIC_ENABLE_SHARE === 'true'
 
@@ -40,7 +45,7 @@ export function AnswerSection({
   useEffect(() => {
     if (content) {
       const date = new Date()
-      setTimestamp(format(date, 'Pp'))
+      setTimestamp(format(date, 'p'))
     }
   }, [content])
 
@@ -51,36 +56,80 @@ export function AnswerSection({
     return Promise.resolve(undefined)
   }
 
-  const VoicePlayback = () => (
-    <Icon
-      name={isTTSPlaying ? 'spinners-bars-middle' : 'ai-voice'}
-      className={cn('text-indigo-500 dark:text-indigo-400 size-5', {
-        'text-stone-400 size-2.5': isTTSPlaying
-      })}
-      solid
-    />
+  // Voice playback logic
+  const audioRef = useRef<HTMLAudioElement>(null)
+  const [isPlaying, setIsPlaying] = useState(false)
+
+  const handleVoicePlayback = useCallback(() => {
+    if (!audioRef.current) return
+    if (isPlaying) {
+      audioRef.current.pause()
+    } else {
+      audioRef.current.play()
+    }
+  }, [isPlaying])
+
+  const onAudioEnded = () => setIsPlaying(false)
+  const onAudioPlay = () => setIsPlaying(true)
+  const onAudioPause = () => setIsPlaying(false)
+
+  const VoicePlayback = useCallback(
+    () => (
+      <IconBtn
+        solid
+        size={28}
+        btnProps={{
+          onClick: handleVoicePlayback,
+          'aria-label': isPlaying ? 'Pause voice' : 'Play voice'
+        }}
+        hoverStyle="group-hover:text-zinc-100/40"
+        icon={
+          audioStatus === 'playable'
+            ? 'tri'
+            : audioStatus === 'playing'
+              ? 'spinners-bars-middle'
+              : 'spinners-3-dots-move'
+        }
+        iconStyle={cn(
+          'text-indigo-500 group-hover:text-teal-500 dark:text-indigo-500 size-6',
+          {
+            'text-stone-400 size-2.5': isTTSPlaying,
+            'size-2.5 dark:text-indigo-300': audioStatus === 'receiving',
+            'size-2.5 dark:text-orange-200': audioStatus === 'uploading',
+            'size-2.5 dark:text-cyan-500': audioStatus === 'uploaded',
+            'dark:text-teal-400 size-3.5': audioStatus === 'playable',
+            'dark:text-indigo-400 size-4': audioStatus === 'playing'
+          }
+        )}
+      />
+    ),
+    [handleVoicePlayback, isPlaying, isTTSPlaying, audioStatus]
   )
 
   const message = content ? (
-    <div className="flex flex-col gap-2">
-      <div className="flex flex-row items-center space-x-3">
-        <Avatar className="size-6">
+    <div className="flex flex-col pe-16">
+      <div className="flex flex-row items-center">
+        <Avatar className="size-6 -ml-6">
           {false && <AvatarImage src={''} alt={''} />}
-          <AvatarFallback className="dark:bg-background/50">
+          <AvatarFallback className="dark:bg-background/50 relative">
             <Icon
               size={14}
-              name="asterisk"
-              className="text-pink-400 dark:text-pink-200/60"
+              name="sparkle"
+              className="text-pink-400 dark:text-pink-300"
             />
           </AvatarFallback>
         </Avatar>
         <VoicePlayback />
+        {/* <VoiceStatusIndicator /> */}
       </div>
-      <div className="pt-2 px-2">
-        <BotMessage message={content} />
+      <div className="p-6 border border-muted/20 dark:bg-sidebar bg-muted/80 rounded-2xl max-w-prose ">
+        <AssistantMessage message={content} />
       </div>
-      <div className="flex items-end justify-between">
-        <div className="ps-2 font-space text-sm opacity-50">{timestamp}</div>
+
+      <div className="flex items-center space-x-6 justify-end">
+        <div className="ps-2 font-space tracking-wider text-xs opacity-50">
+          {timestamp}
+        </div>
         {showActions && (
           <MessageActions
             chatId={chatId}
@@ -88,6 +137,16 @@ export function AnswerSection({
             reload={handleReload}
             messageId={messageId}
             enableShare={enableShare}
+          />
+        )}
+        {audioUrl && (
+          <audio
+            ref={audioRef}
+            src={audioUrl}
+            style={{ display: 'none' }}
+            onEnded={onAudioEnded}
+            onPlay={onAudioPlay}
+            onPause={onAudioPause}
           />
         )}
       </div>

@@ -1,26 +1,33 @@
 'use client'
 
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
-import { Laptop, Moon, Sun } from 'lucide-react'
 import { useTheme } from 'next-themes'
+import { useCallback } from 'react'
+
+type Theme = 'light' | 'dark' | 'system'
 
 export function ThemeMenuItems() {
-  const { setTheme } = useTheme()
+  const { setTheme, themes } = useTheme()
+  const handleSet = useCallback(
+    (theme: Theme) => () => {
+      setTheme(theme)
+    },
+    [setTheme]
+  )
+
+  // const themes = useMemo(() => ['light', 'dark', 'system'], [])
 
   return (
     <>
-      <DropdownMenuItem onClick={() => setTheme('light')}>
-        <Sun className="mr-2 h-4 w-4" />
-        <span>Light</span>
-      </DropdownMenuItem>
-      <DropdownMenuItem onClick={() => setTheme('dark')}>
-        <Moon className="mr-2 h-4 w-4" />
-        <span>Dark</span>
-      </DropdownMenuItem>
-      <DropdownMenuItem onClick={() => setTheme('system')}>
-        <Laptop className="mr-2 h-4 w-4" />
-        <span>System</span>
-      </DropdownMenuItem>
+      {themes.map(theme => (
+        <DropdownMenuItem
+          key={theme}
+          onClick={handleSet(theme as Theme)}
+          className="h-10 cursor-pointer rounded-xl dark:hover:bg-sidebar hover:bg-stone-200/50 px-4"
+        >
+          <span>{theme}</span>
+        </DropdownMenuItem>
+      ))}
     </>
   )
 }

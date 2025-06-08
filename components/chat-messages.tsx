@@ -27,6 +27,7 @@ interface ChatMessagesProps {
     options?: ChatRequestOptions
   ) => Promise<string | null | undefined>
   isTTSPlaying?: boolean
+  audioStates?: Record<string, { url?: string; status: string; error?: string }>
 }
 
 export function ChatMessages({
@@ -39,7 +40,8 @@ export function ChatMessages({
   addToolResult,
   onUpdateMessage,
   scrollContainerRef,
-  isTTSPlaying
+  isTTSPlaying,
+  audioStates = {}
 }: ChatMessagesProps) {
   const [openStates, setOpenStates] = useState<Record<string, boolean>>({})
   const manualToolCallId = 'manual-tool-call'
@@ -78,6 +80,18 @@ export function ChatMessages({
       args: toolData.args ? JSON.parse(toolData.args) : undefined
     }
   }, [data])
+
+  // Scroll to bottom on initial load or when new messages are added
+  useEffect(() => {
+    const container = scrollContainerRef.current
+    if (!container) return
+    // Only scroll if content overflows
+    if (container.scrollHeight > container.clientHeight) {
+      setTimeout(() => {
+        container.scrollTop = container.scrollHeight
+      }, 0)
+    }
+  }, [sections.length, scrollContainerRef])
 
   if (!sections.length) return null
 
@@ -120,12 +134,9 @@ export function ChatMessages({
       id="scroll-container"
       ref={scrollContainerRef}
       aria-roledescription="chat messages"
-      className={cn(
-        'relative size-full pt-14',
-        sections.length > 0 ? 'flex-1 overflow-y-auto' : ''
-      )}
+      className={cn('w-full h-full flex-1 overflow-y-auto pt-14')}
     >
-      <div className="relative mx-auto w-full max-w-3xl px-4">
+      <div className="relative mx-auto w-full  max-w-3xl px-4">
         {sections.map((section, sectionIndex) => (
           <div
             key={section.id}
@@ -150,6 +161,8 @@ export function ChatMessages({
                 onOpenChange={handleOpenChange}
                 onUpdateMessage={onUpdateMessage}
                 messageId={section.userMessage.id}
+                audioUrl={audioStates[section.userMessage.id]?.url}
+                audioStatus={audioStates[section.userMessage.id]?.status}
               />
               {showLoading && <Spinner />}
             </div>
@@ -158,7 +171,7 @@ export function ChatMessages({
             {section.assistantMessages.map(assistantMessage => (
               <div
                 key={assistantMessage.id}
-                className="flex flex-col p-3 border border-muted/20 dark:bg-muted/30 bg-muted/80 rounded-2xl max-w-prose gap-4"
+                className="flex flex-col p-3 gap-4"
               >
                 <RenderMessage
                   chatId={chatId}
@@ -171,6 +184,8 @@ export function ChatMessages({
                   messageId={assistantMessage.id}
                   onOpenChange={handleOpenChange}
                   onUpdateMessage={onUpdateMessage}
+                  audioUrl={audioStates[assistantMessage.id]?.url}
+                  audioStatus={audioStates[assistantMessage.id]?.status}
                 />
               </div>
             ))}

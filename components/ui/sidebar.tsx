@@ -280,7 +280,10 @@ const SidebarTrigger = React.forwardRef<
       size="icon"
       variant="ghost"
       data-sidebar="trigger"
-      className={cn('size-7', className)}
+      className={cn(
+        'size-6 flex-shrink-0 dark:hover:bg-transparent dark:hover:text-zinc-400',
+        className
+      )}
       onClick={event => {
         onClick?.(event)
         toggleSidebar()
@@ -289,7 +292,9 @@ const SidebarTrigger = React.forwardRef<
     >
       <Icon
         name="sidebar-duo"
-        className={cn('opacity-60 size-7', { 'rotate-180': open })}
+        className={cn('size-full', {
+          'rotate-180': open
+        })}
       />
       <span className="sr-only">Toggle Sidebar</span>
     </Button>
