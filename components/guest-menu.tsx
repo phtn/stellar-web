@@ -3,15 +3,12 @@
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
-import { Link2, LogIn, Palette } from 'lucide-react'
-import Link from 'next/link'
 import { ExternalLinkItems } from './external-link-items'
 import { IconBtn } from './icon-btn'
 import { ThemeMenuItems } from './theme-menu-items'
@@ -19,23 +16,28 @@ import { ThemeMenuItems } from './theme-menu-items'
 export default function GuestMenu() {
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger>
+      <DropdownMenuTrigger className="outline-0">
         <IconBtn
+          size={28}
           icon="settings-square"
           btnProps={{ asChild: true }}
-          hoverStyle="dark:group-hover:text-sidebar"
-          iconStyle="size-7 dark:group-hover:text-stone-400"
+          hoverStyle="dark:group-hover:text-sidebar group-hover:text-stone-600"
+          iconStyle="size-7 group-hover:text-white dark:group-hover:text-stone-400"
         />
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end" forceMount>
-        <DropdownMenuItem asChild>
+      <DropdownMenuContent
+        forceMount
+        align="end"
+        className="w-fit text-end mr-2.5 font-space border-0 bg-stone-100 dark:bg-sidebar-accent"
+      >
+        <ThemeMenuItems />
+        {/* <DropdownMenuItem asChild>
           <Link href="/auth/login">
             <LogIn className="mr-2 size-4" />
             <span>Sign In</span>
           </Link>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuSub>
+        </DropdownMenuItem> */}
+        {/* <DropdownMenuSub>
           <DropdownMenuSubTrigger>
             <Palette className="mr-2 size-4" />
             <span>Theme</span>
@@ -43,16 +45,7 @@ export default function GuestMenu() {
           <DropdownMenuSubContent>
             <ThemeMenuItems />
           </DropdownMenuSubContent>
-        </DropdownMenuSub>
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger>
-            <Link2 className="mr-2 size-4" />
-            <span>Links</span>
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent>
-            <ExternalLinkItems />
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
+        </DropdownMenuSub> */}
       </DropdownMenuContent>
     </DropdownMenu>
   )

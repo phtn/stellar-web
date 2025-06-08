@@ -1,6 +1,17 @@
 'use client'
 
+import { getVoice } from '@/app/actions'
 import { CHAT_ID } from '@/lib/constants'
+import {
+  addMessage,
+  createConversation,
+  getConversation,
+  getMessages,
+  getRecentConversationsForUser,
+  updateMessageWithAudioUrl,
+  uploadVoiceResponse
+} from '@/lib/firebase/conversations'
+import { db } from '@/lib/firebase/index'
 import { useVoiceSettings } from '@/lib/store/voiceSettings'
 import { Model } from '@/lib/types/models'
 import { cn } from '@/lib/utils'
@@ -8,7 +19,7 @@ import { SpeechToTextService } from '@/services/stt'
 import { useChat } from '@ai-sdk/react'
 import { ChatRequestOptions } from 'ai'
 import { Message } from 'ai/react'
-import Image from 'next/image'
+import { doc, serverTimestamp, updateDoc } from 'firebase/firestore'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { ChatMessages } from './chat-messages'
@@ -23,6 +34,31 @@ interface ChatSection {
 }
 
 type RecordingMethod = 'browser' | 'manual'
+
+// Add a function to detect actions/gestures
+function isActionOrGesture(content: string) {
+  const trimmed = content.trim()
+  // Matches *action*, /action/, (action), possibly with whitespace
+  return (
+    /^\*.*\*$/.test(trimmed) ||
+    /^\/.*\/$/.test(trimmed) ||
+    /^\(.*\)$/.test(trimmed)
+  )
+}
+
+type AudioStatus =
+  | 'idle'
+  | 'receiving'
+  | 'uploading'
+  | 'uploaded'
+  | 'playable'
+  | 'playing'
+  | 'error'
+type AudioState = {
+  url?: string
+  status: AudioStatus
+  error?: string
+}
 
 export function Chat({
   id,
@@ -43,7 +79,6 @@ export function Chat({
 
   const [isRecording, setIsRecording] = useState<boolean>(false)
   const [recordingMethod] = useState<RecordingMethod>('browser')
-  const [transcript, setTranscript] = useState<string>('')
   const [isProcessingAudio, setIsProcessingAudio] = useState<boolean>(false)
 
   // Browser Speech Recognition (now using SpeechToTextService)
@@ -53,6 +88,9 @@ export function Chat({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
   const streamRef = useRef<MediaStream | null>(null)
+
+  const [conversationId, setConversationId] = useState<string | null>(null)
+  const [hasStarted, setHasStarted] = useState(false)
 
   const {
     messages,
@@ -75,9 +113,12 @@ export function Chat({
       id
     },
     onFinish: async msg => {
-      if (msg.role === 'assistant') {
-        console.log('generating speech')
-        await generateSpeech(msg.content)
+      if (
+        msg.role === 'assistant' &&
+        msg.content.trim() &&
+        !isActionOrGesture(msg.content)
+      ) {
+        setPendingAssistantMsg(msg)
       }
       // window.history.replaceState({}, '', `/search/${id}`)
       // window.dispatchEvent(new CustomEvent('chat-history-updated'))
@@ -89,48 +130,117 @@ export function Chat({
     experimental_throttle: 100
   })
 
-  const { voiceEngine, outputMode } = useVoiceSettings()
+  const { voiceEngine, outputMode, voice, setVoice } = useVoiceSettings()
 
-  const generateSpeech = useCallback(async (content: string): Promise<void> => {
-    setIsGeneratingAudio(true)
-    setIsTTSPlaying(true)
-    try {
-      const cleanedContent = cleanForTTS(content)
-      const response = await fetch('/api/tts/playht', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: cleanedContent, voiceEngine, outputMode })
-      })
+  const [audioStates, setAudioStates] = useState<Record<string, AudioState>>({})
 
-      if (!response.ok) {
-        throw new Error('TTS request failed')
-      }
+  const [pendingAssistantMsg, setPendingAssistantMsg] =
+    useState<Message | null>(null)
 
-      const audioBlob = await response.blob()
-      const audioUrl = URL.createObjectURL(audioBlob)
+  const generateSpeech = useCallback(
+    async (msg: Message, convId: string): Promise<void> => {
+      const msgId = msg.id
+      console.log('[AUDIO] Starting TTS for msgId:', msgId)
 
-      if (audioRef.current) {
-        audioRef.current.src = audioUrl
-        await audioRef.current.play()
+      setAudioStates(prev => ({ ...prev, [msgId]: { status: 'receiving' } }))
+      console.log('[AUDIO] Status set to receiving for', msgId)
 
-        audioRef.current.addEventListener(
-          'ended',
-          () => {
-            URL.revokeObjectURL(audioUrl)
-            setIsTTSPlaying(false)
-          },
-          { once: true }
-        )
-      } else {
+      try {
+        // 1. Get TTS audio
+        const response = await fetch('/api/tts/playht', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            content: cleanForTTS(msg.content),
+            voiceEngine,
+            outputMode,
+            voice
+          })
+        })
+        if (!response.ok) throw new Error('TTS request failed')
+        const audioBlob = await response.blob()
+        console.log('[AUDIO] TTS audio blob received for', msgId, audioBlob)
+
+        setAudioStates(prev => ({ ...prev, [msgId]: { status: 'uploading' } }))
+        console.log('[AUDIO] Status set to uploading for', msgId)
+
+        // Ensure convId is not null
+        if (!convId) {
+          setAudioStates(prev => ({
+            ...prev,
+            [msgId]: { status: 'error', error: 'No conversationId' }
+          }))
+          console.error('[AUDIO] No conversationId for', msgId)
+          return
+        }
+        console.log('[AUDIO] Using conversationId:', convId)
+
+        // 2. Upload to Firebase Storage
+        const storageUrl = await uploadVoiceResponse(convId, msgId, audioBlob)
+        console.log('[AUDIO] Uploaded to storage. URL:', storageUrl)
+
+        setAudioStates(prev => ({
+          ...prev,
+          [msgId]: { status: 'uploaded', url: storageUrl }
+        }))
+        console.log('[AUDIO] Status set to uploaded for', msgId)
+
+        // 3. Update Firestore
+        await updateMessageWithAudioUrl(convId, msgId, storageUrl)
+        console.log('[AUDIO] Firestore updated with audioUrl for', msgId)
+
+        setAudioStates(prev => ({
+          ...prev,
+          [msgId]: { status: 'playable', url: storageUrl }
+        }))
+        console.log('[AUDIO] Status set to playable for', msgId)
+
+        // 4. Optionally, play the audio
+        if (audioRef.current) {
+          audioRef.current.src = storageUrl
+          console.log(
+            '[AUDIO] Set audioRef src and attempting to play for',
+            msgId
+          )
+          await audioRef.current.play()
+          setAudioStates(prev => ({
+            ...prev,
+            [msgId]: { ...prev[msgId], status: 'playing' }
+          }))
+          console.log('[AUDIO] Status set to playing for', msgId)
+          audioRef.current.addEventListener(
+            'ended',
+            () => {
+              setAudioStates(prev => ({
+                ...prev,
+                [msgId]: { ...prev[msgId], status: 'playable' }
+              }))
+              setIsTTSPlaying(false)
+              console.log(
+                '[AUDIO] Playback ended, status set to playable for',
+                msgId
+              )
+            },
+            { once: true }
+          )
+        } else {
+          setIsTTSPlaying(false)
+          console.warn('[AUDIO] audioRef.current is null for', msgId)
+        }
+      } catch (error: any) {
+        setAudioStates(prev => ({
+          ...prev,
+          [msgId]: { status: 'error', error: error.message }
+        }))
         setIsTTSPlaying(false)
+        console.error('[AUDIO] Error for', msgId, error)
+      } finally {
+        setIsGeneratingAudio(false)
+        console.log('[AUDIO] Done for', msgId)
       }
-    } catch (error) {
-      console.error('Audio generation/playback failed:', error)
-      setIsTTSPlaying(false)
-    } finally {
-      setIsGeneratingAudio(false)
-    }
-  }, [voiceEngine, outputMode])
+    },
+    [voiceEngine, outputMode, voice]
+  )
 
   // ASR
   useEffect(() => {
@@ -145,21 +255,18 @@ export function Chat({
         maxDurationMs: 10000, // 10 seconds max recording duration
         onResult: (finalTranscript, interimTranscript) => {
           if (finalTranscript) {
-            setTranscript('')
             setInput(prev => prev + finalTranscript + '. ')
             setIsRecording(false)
           } else {
-            setTranscript(interimTranscript)
+            console.log(interimTranscript)
           }
         },
-        onError: (error) => {
+        onError: error => {
           console.log('Speech recognition error:', error)
           setIsRecording(false)
-          setTranscript('')
         },
         onEnd: () => {
           setIsRecording(false)
-          setTranscript('')
         }
       })
     }
@@ -168,7 +275,6 @@ export function Chat({
   const startBrowserRecording = (): void => {
     if (sttServiceRef.current && !isRecording) {
       setIsRecording(true)
-      setTranscript('')
       sttServiceRef.current.start()
     }
   }
@@ -400,6 +506,156 @@ export function Chat({
     handleSubmit(e)
   }
 
+  // If id is present (from route/props), use it as conversationId and mark as started
+  useEffect(() => {
+    if (id && !conversationId) {
+      setConversationId(id)
+      setHasStarted(true)
+    }
+  }, [id, conversationId])
+
+  // Ensure existing conversation doc has all required fields
+  useEffect(() => {
+    async function ensureConversationFields() {
+      if (id && conversationId === id) {
+        const convo = await getConversation(id)
+        let needsUpdate = false
+        const updateData: any = {}
+        if (!convo) return // doc doesn't exist, don't update
+        if (!convo.title) {
+          updateData.title = 'Conversation'
+          needsUpdate = true
+        }
+        if (!convo.assistantName) {
+          updateData.assistantName = 'Assistant'
+          needsUpdate = true
+        }
+        if (!convo.createdAt) {
+          updateData.createdAt = serverTimestamp()
+          needsUpdate = true
+        }
+        if (!convo.userId) {
+          updateData.userId = 'demo-user'
+          needsUpdate = true
+        }
+        if (needsUpdate) {
+          await updateDoc(doc(db, 'conversations', id), updateData)
+        }
+      }
+    }
+    ensureConversationFields()
+  }, [id, conversationId])
+
+  const handleFirstMessage = useCallback(
+    async (message: Message) => {
+      // Only create a new conversation if conversationId is not set
+      if (!conversationId) {
+        // TODO: Replace with actual user id from auth
+        const userId = 'demo-user'
+        const assistantName = (await getVoice()) || 'Assistant'
+        const convId = await createConversation(
+          userId,
+          message.content.slice(0, 32),
+          assistantName
+        )
+        setConversationId(convId)
+        await addMessage(convId, message.id, message.role, message.content)
+        setHasStarted(true)
+      }
+    },
+    [conversationId]
+  )
+
+  const handleSubsequentMessage = useCallback(
+    async (message: Message) => {
+      if (conversationId) {
+        await addMessage(
+          conversationId,
+          message.id,
+          message.role,
+          message.content
+        )
+      }
+    },
+    [conversationId]
+  )
+
+  // Intercept message sending
+  useEffect(() => {
+    if (!messages.length) return
+    const lastMessage = messages[messages.length - 1]
+    if (lastMessage.role === 'user') {
+      if (!hasStarted) {
+        handleFirstMessage(lastMessage)
+      } else {
+        handleSubsequentMessage(lastMessage)
+      }
+    }
+  }, [messages, hasStarted, handleFirstMessage, handleSubsequentMessage])
+
+  // Only load Firestore messages on initial conversation load and if chat is empty
+  const initialLoadRef = useRef(false)
+  useEffect(() => {
+    if (conversationId && !initialLoadRef.current && messages.length === 0) {
+      ;(async () => {
+        const msgs = await getMessages(conversationId)
+        setMessages(
+          msgs.map((msg: any) => ({
+            id: msg.id,
+            role: msg.role,
+            content: msg.content
+            // Do not include audioUrl here
+          }))
+        )
+        initialLoadRef.current = true
+      })()
+    }
+  }, [conversationId, setMessages, messages.length])
+
+  // Fetch 10 recent conversations for context
+  const fetchRecentConversations = useCallback(async () => {
+    // TODO: Replace with actual user id from auth
+    const userId = 'demo-user'
+    const recentConvos = await getRecentConversationsForUser(userId, 10)
+    // Use recentConvos as needed for context
+    return recentConvos
+  }, [])
+
+  // Optionally, fetch recent conversations on mount or when needed
+  useEffect(() => {
+    fetchRecentConversations()
+  }, [fetchRecentConversations])
+
+  useEffect(() => {
+    if (conversationId && pendingAssistantMsg) {
+      ;(async () => {
+        await addMessage(
+          conversationId,
+          pendingAssistantMsg.id,
+          pendingAssistantMsg.role,
+          pendingAssistantMsg.content
+        )
+        await generateSpeech(pendingAssistantMsg, conversationId)
+        setPendingAssistantMsg(null)
+      })()
+    }
+  }, [conversationId, pendingAssistantMsg, generateSpeech])
+
+  useEffect(() => {
+    // Initialize audioStates for messages with audioUrl (e.g., when loading a conversation)
+    if (savedMessages && savedMessages.length > 0) {
+      setAudioStates(prev => {
+        const newStates = { ...prev }
+        for (const msg of savedMessages as any[]) {
+          if (msg.audioUrl) {
+            newStates[msg.id] = { url: msg.audioUrl, status: 'playable' }
+          }
+        }
+        return newStates
+      })
+    }
+  }, [savedMessages])
+
   return (
     <div
       className={cn(
@@ -408,43 +664,35 @@ export function Chat({
       )}
       data-testid="full-chat"
     >
-      <div className="absolute hidden z-0 opacity-40 left-0 top-0">
-        <Image
-          src={'/images/light.jpeg'}
-          width={0}
-          height={0}
-          alt=""
-          className="h-screen w-auto"
-          unoptimized
-        />
-      </div>
       <ChatMessages
-        sections={sections}
-        data={data}
-        onQuerySelect={onQuerySelect}
-        isLoading={isLoading || isGeneratingAudio}
         chatId={id}
-        addToolResult={addToolResult}
-        scrollContainerRef={scrollContainerRef}
-        onUpdateMessage={handleUpdateAndReloadMessage}
+        data={data}
+        sections={sections}
         reload={handleReloadFrom}
         isTTSPlaying={isTTSPlaying}
+        onQuerySelect={onQuerySelect}
+        addToolResult={addToolResult}
+        scrollContainerRef={scrollContainerRef}
+        isLoading={isLoading ?? isGeneratingAudio}
+        onUpdateMessage={handleUpdateAndReloadMessage}
+        audioStates={audioStates}
       />
       <ChatPanel
-        input={input}
-        handleInputChange={handleInputChange}
-        handleSubmit={onSubmit}
-        isLoading={isLoading}
-        messages={messages}
-        setMessages={setMessages}
         stop={stop}
+        input={input}
         query={query}
         append={append}
         models={models}
+        messages={messages}
+        isLoading={isLoading}
+        handleSubmit={onSubmit}
+        setMessages={setMessages}
+        voiceToggle={handleRecordingToggle}
+        handleInputChange={handleInputChange}
         showScrollToBottomButton={!isAtBottom}
         scrollContainerRef={scrollContainerRef}
-        voiceToggle={handleRecordingToggle}
         voiceRecording={isProcessingAudio || isRecording}
+        setVoice={setVoice}
       />
       <audio ref={audioRef} style={{ display: 'none' }} />
     </div>

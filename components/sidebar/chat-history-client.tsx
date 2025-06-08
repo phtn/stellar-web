@@ -1,115 +1,73 @@
 'use client'
 
+import { SidebarGroup, SidebarGroupLabel } from '@/components/ui/sidebar'
 import {
-  SidebarGroup,
-  SidebarGroupLabel,
-  SidebarMenu
-} from '@/components/ui/sidebar'
+  deleteConversation,
+  getConversationsForUser
+} from '@/lib/firebase/conversations'
 import { Chat } from '@/lib/types'
+import Link from 'next/link'
 import { useCallback, useEffect, useRef, useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { ChatHistorySkeleton } from './chat-history-skeleton'
-import { ChatMenuItem } from './chat-menu-item'
 import { ClearHistoryAction } from './clear-history-action'
 
 // interface ChatHistoryClientProps {} // Removed empty interface
 
-interface ChatPageResponse {
-  chats: Chat[]
-  nextOffset: number | null
+function formatDate(date: any) {
+  if (!date) return ''
+  // Firestore Timestamp object
+  if (date.seconds) {
+    date = new Date(date.seconds * 1000)
+  } else if (typeof date === 'string' || typeof date === 'number') {
+    date = new Date(date)
+  }
+  return date.toLocaleString('en-US', {
+    month: '2-digit',
+    day: '2-digit'
+  })
 }
 
 export function ChatHistoryClient() {
   // Removed props from function signature
   const [chats, setChats] = useState<Chat[]>([])
-  const [nextOffset, setNextOffset] = useState<number | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const loadMoreRef = useRef<HTMLDivElement>(null)
   const [isPending, startTransition] = useTransition()
 
-  const fetchInitialChats = useCallback(async () => {
+  // Fetch conversations from Firestore
+  const fetchConversations = useCallback(async () => {
     setIsLoading(true)
     try {
-      const response = await fetch(`/api/chats?offset=0&limit=20`)
-      if (!response.ok) {
-        throw new Error('Failed to fetch initial chat history')
-      }
-      const { chats: newChats, nextOffset: newNextOffset } =
-        (await response.json()) as ChatPageResponse
-
-      setChats(newChats)
-      setNextOffset(newNextOffset)
+      // TODO: Replace with actual user id from auth
+      const userId = 'demo-user'
+      const conversations = await getConversationsForUser(userId)
+      setChats(conversations)
     } catch (error) {
-      console.error('Failed to load initial chats:', error)
+      console.error('Failed to load conversations:', error)
       toast.error('Failed to load chat history.')
-      setNextOffset(null)
     } finally {
       setIsLoading(false)
     }
   }, [])
 
   useEffect(() => {
-    fetchInitialChats()
-  }, [fetchInitialChats])
+    fetchConversations()
+  }, [fetchConversations])
 
   useEffect(() => {
     const handleHistoryUpdate = () => {
       startTransition(() => {
-        fetchInitialChats()
+        fetchConversations()
       })
     }
     window.addEventListener('chat-history-updated', handleHistoryUpdate)
     return () => {
       window.removeEventListener('chat-history-updated', handleHistoryUpdate)
     }
-  }, [fetchInitialChats])
+  }, [fetchConversations])
 
-  const fetchMoreChats = useCallback(async () => {
-    if (isLoading || nextOffset === null) return
-
-    setIsLoading(true)
-    try {
-      const response = await fetch(`/api/chats?offset=${nextOffset}&limit=20`)
-      if (!response.ok) {
-        throw new Error('Failed to fetch more chat history')
-      }
-      const { chats: newChats, nextOffset: newNextOffset } =
-        (await response.json()) as ChatPageResponse
-
-      setChats(prevChats => [...prevChats, ...newChats])
-      setNextOffset(newNextOffset)
-    } catch (error) {
-      console.error('Failed to load more chats:', error)
-      toast.error('Failed to load more chat history.')
-      setNextOffset(null)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [nextOffset, isLoading])
-
-  useEffect(() => {
-    const observerRefValue = loadMoreRef.current
-    if (!observerRefValue || nextOffset === null || isPending) return
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !isLoading && !isPending) {
-          fetchMoreChats()
-        }
-      },
-      { threshold: 0.1 }
-    )
-
-    observer.observe(observerRefValue)
-
-    return () => {
-      if (observerRefValue) {
-        observer.unobserve(observerRefValue)
-      }
-    }
-  }, [fetchMoreChats, nextOffset, isLoading, isPending])
-
-  const isHistoryEmpty = !isLoading && !chats.length && nextOffset === null
+  const isHistoryEmpty = !isLoading && !chats.length
 
   return (
     <div className="flex flex-col flex-1 h-full">
@@ -125,11 +83,46 @@ export function ChatHistoryClient() {
             No search history
           </div>
         ) : (
-          <SidebarMenu>
+          <ul className="px-2 py-2">
             {chats.map(
-              (chat: Chat) => chat && <ChatMenuItem key={chat.id} chat={chat} />
+              (chat: any) =>
+                chat && (
+                  <li
+                    key={chat.id}
+                    className="mb-2 flex items-center justify-between group"
+                  >
+                    <Link
+                      href={`/chat/${chat.id}`}
+                      className="block px-2 py-1 rounded hover:bg-muted/30 truncate font-medium flex-1"
+                    >
+                      {chat.title}
+                    </Link>
+                    <div className="text-xs text-muted-foreground pl-2">
+                      {chat.assistantName && (
+                        <span className="mr-2">{chat.assistantName}</span>
+                      )}
+                    </div>
+                    <button
+                      className="ml-2 rounded text-red-500 opacity-0 group-hover:opacity-100 transition"
+                      title="Delete conversation"
+                      onClick={async e => {
+                        e.preventDefault()
+                        await deleteConversation(chat.id)
+                        setChats(chats =>
+                          chats.filter((c: any) => c.id !== chat.id)
+                        )
+                        // if (confirm('Delete this conversation?')) {
+                        //   await deleteConversation(chat.id)
+
+                        // }
+                      }}
+                    >
+                      x
+                    </button>
+                  </li>
+                )
             )}
-          </SidebarMenu>
+          </ul>
         )}
         <div ref={loadMoreRef} style={{ height: '1px' }} />
         {(isLoading || isPending) && (

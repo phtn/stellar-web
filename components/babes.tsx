@@ -2,7 +2,7 @@ import { ConfigCtx } from '@/ctx/config'
 import { Icon, IconName } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import Image from 'next/image'
-import { use, useEffect, useMemo, useState } from 'react'
+import { use, useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Carousel,
   CarouselApi,
@@ -12,14 +12,19 @@ import {
   CarouselPrevious
 } from './ui/carousel'
 import { Toggle } from './ui/toggle'
+import { Voices } from '@/lib/store/voiceSettings'
+import { setVoice } from '@/app/actions'
 
 interface IBabe {
-  id: string
+  id: Voices
   src: string
   greeting: string
 }
 
-export const Babes = () => {
+interface BabesProps {
+  startVoiceChat: (voice: Voices) => void
+}
+export const Babes = ({ startVoiceChat }: BabesProps) => {
   const { getFileUri } = use(ConfigCtx)!
   const [api, setApi] = useState<CarouselApi>()
   const [current, setCurrent] = useState(0)
@@ -64,13 +69,32 @@ export const Babes = () => {
           id: 'maddie',
           greeting: "Take me shopping and I'll let you cuddle.",
           src: getFileUri('maddie.webp')
+        },
+        {
+          id: 'poki',
+          greeting: 'You must be that guy!.',
+          src: getFileUri('poki.webp')
+        },
+        {
+          id: 'lovins',
+          greeting: 'Take me away..',
+          src: getFileUri('lovins.webp')
         }
       ] as IBabe[],
     [getFileUri]
   )
+
+  const handleSelect = useCallback(
+    (id: Voices) => async () => {
+      console.log(id)
+      startVoiceChat(id)
+      await setVoice(id)
+    },
+    [startVoiceChat]
+  )
   return (
     <div className="mb-10 flex flex-col items-center gap-4 scroll-smooth will-change-scroll">
-      <div className="md:w-[36rem] w-[28rem] flex items-center justify-between">
+      <div className="md:w-[34rem] w-full flex items-center justify-between">
         <div className="flex items-center">
           <span className="font-space font-bold opacity-60">{current}</span>
           <span className="px-2 text-xs scale-75 opacity-50">|</span>
@@ -81,7 +105,7 @@ export const Babes = () => {
         <ActionFeature
           label="Voice Chat"
           icon="voice-solid"
-          fn={() => console.log('babes.tsx', 'voice')}
+          fn={handleSelect(babes[current - 1]?.id)}
         />
       </div>
       <Carousel
@@ -97,12 +121,12 @@ export const Babes = () => {
               onSelect={e => console.log(e)}
             >
               <Image
-                src={babe.src}
-                alt={babe.src}
                 width={0}
                 height={0}
-                className="lg:h-[28rem] select-none h-[22rem] w-auto rounded-2xl aspect-auto"
                 unoptimized
+                src={babe.src}
+                alt={babe.src}
+                className="lg:h-[28rem] select-none h-[22rem] w-auto rounded-2xl aspect-auto"
               />
             </CarouselItem>
           ))}
@@ -124,8 +148,8 @@ export const Babes = () => {
         </p>
 
         <Icon
-          name="quotes"
           size={24}
+          name="quotes"
           className="dark:opacity-15 dark:text-teal-100 text-stone-300 blur-[1.5px]"
         />
       </div>
@@ -165,14 +189,14 @@ export const ActionFeature = ({ icon, label, fn }: ActionFeatureProps) => (
   <button
     onClick={fn}
     className={cn(
-      ' rounded-full flex items-center justify-center space-x-2 border border-teal-500 bg-teal-500 ps-1 pe-1.5 py-1 dark:bg-foreground/15 dark:border-foreground/10'
+      ' rounded-full flex items-center justify-center space-x-2 border border-teal-500 bg-teal-500 ps-1 pe-2 py-1 dark:bg-foreground/15 dark:border-foreground/10'
     )}
   >
-    <Icon name={icon} size={14} />
+    <Icon name={icon} size={18} color="white" className="text-white" solid />
     <span className="tracking-tight font-space font-medium text-base text-white">
       {label}
     </span>
-    <Pro />
+    {/* <Pro /> */}
   </button>
 )
 
@@ -187,15 +211,14 @@ export const ToggleFeature = ({
     onClick={fn}
     className={cn(
       'h-9 flex items-center justify-center self-end',
-      'rounded-full border border-primary space-x-0.5',
       'dark:bg-zinc-950/40 dark:border-foreground/10',
-      'bg-primary px-3 hover:bg-zinc-700'
+      'rounded-full border border-primary',
+      'bg-primary px-2.5 pe-3 hover:bg-zinc-700'
     )}
   >
-    {/* <Icon name={icon} size={14} className={cn('text-background')} /> */}
-    <span className="font-space font-light tracking-wide text-sm text-teal-100 dark:text-teal-50">
+    <Icon name={icon} size={10} className="text-teal-400" />
+    <span className="font-space text-sm text-neutral-50 dark:text-teal-50">
       {label}
     </span>
-    {/* <Pro /> */}
   </Toggle>
 )

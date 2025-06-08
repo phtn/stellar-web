@@ -10,7 +10,7 @@ import { Citing } from './custom-link'
 import { CodeBlock } from './ui/codeblock'
 import { MemoizedReactMarkdown } from './ui/markdown'
 
-export function BotMessage({
+export function AssistantMessage({
   message,
   className
 }: {
@@ -75,7 +75,7 @@ export function BotMessage({
 
           return (
             <CodeBlock
-              key={Math.random()}
+              key={crypto.randomUUID()}
               language={(match && match[1]) ?? ''}
               value={String(children).replace(/\n$/, '')}
               {...props}

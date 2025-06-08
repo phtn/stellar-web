@@ -1,5 +1,6 @@
 'use server'
 
+import { Voices } from '@/lib/store/voiceSettings'
 import { CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
@@ -18,4 +19,14 @@ export const setWSState = async (state: 'enabled' | 'disabled') => {
 export const getWSState = async () => {
   const store = await cookies()
   return store.get('ws-state')?.value
+}
+
+export const setVoice = async (voice: Voices) => {
+  const store = await cookies()
+  store.set('cr-vc', voice, { ...opts })
+}
+
+export const getVoice = async () => {
+  const store = await cookies()
+  return store.get('cr-vc')?.value
 }

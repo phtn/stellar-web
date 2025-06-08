@@ -7,10 +7,12 @@ import { Toaster } from '@/components/ui/sonner'
 import { createClient } from '@/lib/supabase/server'
 import { cn } from '@/lib/utils'
 // import { Analytics } from '@vercel/analytics/next'
+import AuthGate from '@/components/AuthGate'
+import { Providers } from '@/ctx'
 import type { Metadata, Viewport } from 'next'
 import { Inter as FontSans, Space_Grotesk } from 'next/font/google'
+import Script from 'next/script'
 import './globals.css'
-import { Providers } from '@/ctx'
 
 const fontSans = FontSans({
   subsets: ['latin'],
@@ -74,6 +76,8 @@ export default async function RootLayout({
           space.variable
         )}
       >
+        <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" />
+        <AuthGate />
         <Providers>
           <ThemeProvider
             attribute="class"

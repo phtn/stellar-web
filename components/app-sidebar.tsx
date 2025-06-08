@@ -10,17 +10,22 @@ import {
   SidebarRail,
   SidebarTrigger
 } from '@/components/ui/sidebar'
+import { useGoogleOneTap } from '@/hooks/useGoogleOneTap'
 import { Icon } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import { Plus } from 'lucide-react'
 import Link from 'next/link'
-import { Suspense } from 'react'
+import { Suspense, useCallback, useState } from 'react'
 import { ChatHistorySection } from './sidebar/chat-history-section'
 import { ChatHistorySkeleton } from './sidebar/chat-history-skeleton'
 
 export default function AppSidebar() {
-  // const { voiceEngine, setVoiceEngine, outputMode, setOutputMode } =
-  //   useVoiceSettings()
+  const [showOneTap, setShowOneTap] = useState(false)
+  useGoogleOneTap(undefined, undefined, showOneTap)
+
+  const handleOneTap = useCallback(() => {
+    setShowOneTap(true)
+  }, [])
 
   return (
     <Sidebar side="left" variant="sidebar" collapsible="offcanvas">
@@ -50,20 +55,26 @@ export default function AppSidebar() {
             </span>
           </div>
         </div>
-        <SidebarMenu className="ps-2">
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <Link href="/" className="flex items-center gap-2 opacity-80">
-                <Plus className="size-4" />
-                <span>New</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+
         <div className="flex-1 overflow-y-auto">
           <Suspense fallback={<ChatHistorySkeleton />}>
             <ChatHistorySection />
           </Suspense>
+        </div>
+        <div className="my-4 flex flex-col gap-2">
+          <button
+            onClick={handleOneTap}
+            className="flex items-center p-4 space-x-3 hover:bg-border/40 rounded-xl"
+          >
+            <Icon
+              solid
+              name="edit-straight"
+              className="size-6 dark:text-teal-400 dark:bg-transparent bg-teal-300 text-teal-950 rounded-full"
+            />
+            <span className="tracking-snug font-medium font-space ">
+              Sign in
+            </span>
+          </button>
         </div>
       </SidebarContent>
       <SidebarRail />

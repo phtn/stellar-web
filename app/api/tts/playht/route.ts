@@ -1,19 +1,34 @@
+import { getVoice } from '@/app/actions'
+import { Voices } from '@/lib/store/voiceSettings'
 import { PlayHT_TTS_Service } from '@/services/tts/playht'
+
+const voices: Record<Voices, string> = {
+  ellie: process.env.ELLIE_ID!,
+  maddie: process.env.MOODY_ID!,
+  emma: process.env.EMMA_ID!,
+  lindsay: process.env.LINDSAY_ID!,
+  kenna: process.env.KENDALL_ID!,
+  poki: process.env.POKI_ID!,
+  lovins: process.env.LOVINS_ID!
+}
 
 export async function POST(req: Request): Promise<Response> {
   const {
     content,
     voiceEngine = 'playht',
-    outputMode = 'text-stream'
+    outputMode = 'text-stream',
+    voice
   } = await req.json()
 
-  console.log(content, voiceEngine, outputMode)
+  const voiceId = voices[(await getVoice()) as Voices]
+
+  console.log('VOICE', voice, voiceId)
 
   try {
     if (voiceEngine === 'playht') {
       const playht = new PlayHT_TTS_Service()
       if (outputMode === 'text-stream') {
-        const audioBuffer = await playht.streamSpeech(content)
+        const audioBuffer = await playht.streamSpeech(content, voiceId)
         return new Response(audioBuffer, {
           headers: {
             'Content-Type': 'audio/mpeg',
@@ -31,7 +46,7 @@ export async function POST(req: Request): Promise<Response> {
         // 3. Use PlayDialog engine for now
         const engine = 'PlayDialog'
         // 4. Stream audio chunks as they arrive
-        const audioStream = playht.streamDialog(textStream(), undefined, engine)
+        const audioStream = playht.streamDialog(textStream(), voiceId, engine)
         // 5. Return a streaming response
         const stream = new ReadableStream({
           async pull(controller) {

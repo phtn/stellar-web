@@ -27,6 +27,8 @@ interface ChatMessagesProps {
     options?: ChatRequestOptions
   ) => Promise<string | null | undefined>
   isTTSPlaying?: boolean
+  audioUrls?: Record<string, string>
+  audioStates?: Record<string, { url?: string; status: string; error?: string }>
 }
 
 export function ChatMessages({
@@ -39,7 +41,8 @@ export function ChatMessages({
   addToolResult,
   onUpdateMessage,
   scrollContainerRef,
-  isTTSPlaying
+  isTTSPlaying,
+  audioStates = {}
 }: ChatMessagesProps) {
   const [openStates, setOpenStates] = useState<Record<string, boolean>>({})
   const manualToolCallId = 'manual-tool-call'
@@ -150,6 +153,8 @@ export function ChatMessages({
                 onOpenChange={handleOpenChange}
                 onUpdateMessage={onUpdateMessage}
                 messageId={section.userMessage.id}
+                audioUrl={audioStates[section.userMessage.id]?.url}
+                audioStatus={audioStates[section.userMessage.id]?.status}
               />
               {showLoading && <Spinner />}
             </div>
@@ -158,7 +163,7 @@ export function ChatMessages({
             {section.assistantMessages.map(assistantMessage => (
               <div
                 key={assistantMessage.id}
-                className="flex flex-col p-3 border border-muted/20 dark:bg-muted/30 bg-muted/80 rounded-2xl max-w-prose gap-4"
+                className="flex flex-col p-3 gap-4"
               >
                 <RenderMessage
                   chatId={chatId}
@@ -171,6 +176,8 @@ export function ChatMessages({
                   messageId={assistantMessage.id}
                   onOpenChange={handleOpenChange}
                   onUpdateMessage={onUpdateMessage}
+                  audioUrl={audioStates[assistantMessage.id]?.url}
+                  audioStatus={audioStates[assistantMessage.id]?.status}
                 />
               </div>
             ))}

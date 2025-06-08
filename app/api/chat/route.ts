@@ -1,3 +1,4 @@
+import { getVoice } from '@/app/actions'
 import { cohere } from '@ai-sdk/cohere'
 import { streamText } from 'ai'
 
@@ -16,6 +17,10 @@ export async function POST(req: Request) {
       {
         role: 'system',
         content: instructions
+      },
+      {
+        role: 'system',
+        content: `Your name is ${await getVoice()}. Be bubbly! Goodluck`
       },
       ...messages
     ]
