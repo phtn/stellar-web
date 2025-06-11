@@ -91,17 +91,24 @@ export const MessageCtxProvider = ({ children, messages }: MessageCtxProps) => {
   }, [])
 
   const lastUserIndex = useMemo(() => getLastUserIndex(messages), [messages])
-  useEffect(() => {
+
+  // Memoize sections to prevent unnecessary recalculations
+  const memoizedSections = useMemo(() => {
     if (messages) {
-      const s = createSections(messages)
-      setSections(s)
-      console.log('[MessageCtx] sections:', s)
-      // console.log('[MessageCtx] allMessages:', allMessages)
+      return createSections(messages)
     }
+    return []
   }, [messages])
 
+  useEffect(() => {
+    if (JSON.stringify(sections) !== JSON.stringify(memoizedSections)) {
+      setSections(memoizedSections)
+      console.log('[MessageCtx] sections:', memoizedSections)
+    }
+  }, [memoizedSections, sections])
+
   const handleOpenChange = useCallback((id: string, open: boolean) => {
-    setOpenStates(prev => ({
+    setOpenStates((prev: Record<string, boolean>) => ({
       ...prev,
       [id]: open
     }))
@@ -120,12 +127,8 @@ export const MessageCtxProvider = ({ children, messages }: MessageCtxProps) => {
         // If it's a standalone call ID, we'll still try to find it in messages
         baseId = id
       }
-
-      const index = messages.findIndex(msg => msg.id === baseId)
-      // Use the same logic for all IDs: check position relative to lastUserIndex
-      return openStates[id] ?? (index !== -1 ? index >= lastUserIndex : false)
     },
-    [messages, lastUserIndex, openStates]
+    [openStates]
   )
 
   const selectQuery = useCallback(
