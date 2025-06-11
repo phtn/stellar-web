@@ -1,14 +1,13 @@
 'use client'
 
-import { MessageCtx, SetMessage } from '@/ctx/chat/message-ctx'
+import { MessageCtx } from '@/ctx/chat/message-ctx'
 import { useTools } from '@/lib/hooks/use-tools'
 import { cn } from '@/lib/utils'
 import { ChatRequestOptions, JSONValue } from 'ai'
-import { RefObject, useCallback, useContext, useEffect } from 'react'
+import { RefObject, useCallback, useContext, useEffect, useMemo } from 'react'
 import { RenderMessage } from './render-message'
 import { ToolSection } from './tool-section'
 import { Spinner } from './ui/spinner'
-import { ChatSection } from '@/ctx/chat/types'
 
 interface ChatMessagesProps {
   data: JSONValue[] | undefined
@@ -57,24 +56,41 @@ export function ChatMessages({
     [reload]
   )
 
-  // Scroll to bottom on initial load or when new messages are added
+  // Optimize scroll logic with requestAnimationFrame
   useEffect(() => {
     const container = scrollContainerRef.current
     if (!container) return
-    // Only scroll if content overflows
-    if (container.scrollHeight > container.clientHeight) {
-      setTimeout(() => {
-        container.scrollTop = container.scrollHeight
-      }, 0)
+
+    // Use requestAnimationFrame for smooth scrolling
+    const scrollToBottom = () => {
+      if (container.scrollHeight > container.clientHeight) {
+        requestAnimationFrame(() => {
+          container.scrollTop = container.scrollHeight
+        })
+      }
     }
-    console.log(container.clientHeight)
+
+    // Small delay to ensure DOM is updated
+    const timeoutId = setTimeout(scrollToBottom, 0)
+
+    return () => clearTimeout(timeoutId)
   }, [sections.length, scrollContainerRef])
 
-  // Check if loading indicator should be shown
-  const showLoading =
+  // Memoize loading indicator check
+  const showLoading = useMemo(() =>
     isLoading &&
     sections.length > 0 &&
-    sections?.[sections.length - 1].assistantMessages.length === 0
+    sections?.[sections.length - 1].assistantMessages.length === 0,
+    [isLoading, sections]
+  )
+
+  // Memoize last section style
+  const getLastSectionStyle = useCallback((sectionIndex: number) =>
+    sectionIndex === sections.length - 1
+      ? { minHeight: 'calc(100dvh-428px)' }
+      : undefined,
+    [sections.length]
+  )
 
   return (
     <div
@@ -90,11 +106,7 @@ export function ChatMessages({
             key={section.id}
             id={`section-${section.id}`}
             className="chat-section mb-8"
-            style={
-              sectionIndex === sections.length - 1
-                ? { minHeight: 'calc(100dvh-428px)' }
-                : {}
-            }
+            style={getLastSectionStyle(sectionIndex)}
           >
             {/* User message */}
             <div className="flex font-space flex-col items-end gap-4 mb-8">
@@ -109,22 +121,22 @@ export function ChatMessages({
                 audioUrl={audioStates[section.userMessage.id]?.url}
                 audioStatus={audioStates[section.userMessage.id]?.status}
               />
-              {showLoading && <Spinner />}
+              {showLoading && sectionIndex === sections.length - 1 && <Spinner />}
             </div>
 
             {/* Assistant messages */}
             {section.assistantMessages.map(message => (
-              <div key={section.id} className="flex flex-col p-3 gap-4">
+              <div key={message.id} className="flex flex-col p-3 gap-4">
                 <RenderMessage
                   chatId={chatId}
                   message={message}
-                  messageId={section.id}
+                  messageId={message.id}
                   addToolResult={addToolResult}
                   onUpdateMessage={onUpdateMessage}
                   onOpenChangeAction={handleOpenChange}
-                  audioUrl={audioStates[section.id]?.url}
+                  audioUrl={audioStates[message.id]?.url}
                   onQuerySelectAction={onQuerySelectAction}
-                  audioStatus={audioStates[section.id]?.status}
+                  audioStatus={audioStates[message.id]?.status}
                 />
               </div>
             ))}
