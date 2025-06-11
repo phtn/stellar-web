@@ -203,14 +203,17 @@ const CarouselPrevious = React.forwardRef<
   return (
     <Button
       ref={ref}
-      variant={variant}
       size={size}
+      variant={variant}
       className={cn(
-        'absolute size-8 bg-foreground/40 hover:bg-foreground/80 dark:disabled:text-neutral-400 text-teal-200 rounded-xl ',
-        'disabled:text-neutral-800 disabled:bg-background/40',
-        orientation === 'horizontal'
-          ? '-left-12 top-1/2 -translate-y-1/2'
-          : '-top-12 left-1/2 -translate-x-1/2 rotate-90',
+        'absolute size-8 bg-foreground/40 hover:bg-foreground/80 dark:disabled:text-background text-teal-200 rounded-xl ',
+        'disabled:text-neutral-800 disabled:bg-background/40 dark:disabled:bg-sidebar-primary-foreground/60 disabled:scale-[50%]',
+        {
+          '-left-12 top-1/2 -translate-y-1/2': orientation === 'horizontal',
+          '-top-12 left-1/2 -translate-x-1/2 rotate-90':
+            orientation === 'vertical'
+        },
+
         className
       )}
       disabled={!canScrollPrev}
@@ -237,7 +240,7 @@ const CarouselNext = React.forwardRef<
       size={size}
       className={cn(
         'absolute size-8 bg-foreground/40 hover:bg-foreground/80 text-teal-200 rounded-xl ',
-        'disabled:text-neutral-800 disabled:bg-background/40',
+        'disabled:text-neutral-80$ disabled:bg-background/40 dark:disabled:bg-sidebar-primary-foreground/40 disabled:scale-[50%]',
         orientation === 'horizontal'
           ? '-right-12 top-1/2 -translate-y-1/2'
           : '-bottom-12 left-1/2 -translate-x-1/2 rotate-90',

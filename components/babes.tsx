@@ -1,3 +1,5 @@
+'use client'
+
 import { ConfigCtx } from '@/ctx/config'
 import { Icon, IconName } from '@/lib/icons'
 import { cn } from '@/lib/utils'
@@ -22,9 +24,9 @@ interface IBabe {
 }
 
 interface BabesProps {
-  startVoiceChat: (voice: Voices) => void
+  startVoiceChatAction: (voice: Voices) => void
 }
-export const Babes = ({ startVoiceChat }: BabesProps) => {
+export const Babes = ({ startVoiceChatAction }: BabesProps) => {
   const { getFileUri } = use(ConfigCtx)!
   const [api, setApi] = useState<CarouselApi>()
   const [current, setCurrent] = useState(0)
@@ -87,14 +89,14 @@ export const Babes = ({ startVoiceChat }: BabesProps) => {
   const handleSelect = useCallback(
     (id: Voices) => async () => {
       console.log(id)
-      startVoiceChat(id)
+      startVoiceChatAction(id)
       await setVoice(id)
     },
-    [startVoiceChat]
+    [startVoiceChatAction]
   )
   return (
     <div className="mb-10 flex flex-col items-center gap-4 scroll-smooth will-change-scroll">
-      <div className="md:w-[34rem] w-full flex items-center justify-between">
+      <div className="md:w-[34rem] w-full px-4 md:px-0 flex items-center justify-between">
         <div className="flex items-center">
           <span className="font-space font-bold opacity-60">{current}</span>
           <span className="px-2 text-xs scale-75 opacity-50">|</span>
@@ -121,36 +123,37 @@ export const Babes = ({ startVoiceChat }: BabesProps) => {
               onSelect={e => console.log(e)}
             >
               <Image
+                priority
                 width={0}
                 height={0}
                 unoptimized
                 src={babe.src}
                 alt={babe.src}
-                className="lg:h-[28rem] select-none h-[22rem] w-auto rounded-2xl aspect-auto"
+                className="lg:h-[32rem] select-none h-[24rem] w-auto rounded-2xl aspect-auto"
               />
             </CarouselItem>
           ))}
         </CarouselContent>
 
-        <div className="absolute bottom-4 right-4 md:right-28 md:w-24 z-10 w-1/4 border-pink-500 h-12">
-          <CarouselPrevious className="z-10 absolute left-2" />
-          <CarouselNext className="z-10 right-2" />
+        <div className="absolute bottom-4 right-4 md:right-28 md:w-24 z-10 w-1/5 border-pink-500 h-12">
+          <CarouselPrevious className="z-10 absolute left-2 dark:bg-sidebar/70 dark:hover:bg-sidebar" />
+          <CarouselNext className="z-10 right-2 dark:bg-sidebar/70 dark:hover:bg-sidebar" />
         </div>
       </Carousel>
       <div className="flex items-center justify-center space-x-6 h-16">
         <Icon
           size={32}
           name="quotes"
-          className="rotate-180 opacity-50 dark:text-cyan-300 text-teal-500"
+          className="rotate-180 opacity-60 dark:text-cyan-300 text-teal-500 blur-[0.43px]"
         />
-        <p className="text-center font-space text-base italic dark:text-neutral-400 text-neutral-500">
+        <p className="text-center font-space text-base scale-105 italic dark:text-neutral-300 text-neutral-500">
           {babes[current - 1]?.greeting}
         </p>
 
         <Icon
-          size={24}
+          size={28}
           name="quotes"
-          className="dark:opacity-15 dark:text-teal-100 text-stone-300 blur-[1.5px]"
+          className="dark:opacity-25 dark:text-teal-100 text-stone-300 blur-[1.5px]"
         />
       </div>
     </div>
@@ -212,8 +215,8 @@ export const ToggleFeature = ({
     className={cn(
       'h-9 flex items-center justify-center self-end',
       'dark:bg-zinc-950/40 dark:border-foreground/10',
-      'rounded-full border border-primary',
-      'bg-primary px-2.5 pe-3 hover:bg-zinc-700'
+      'rounded-full border border-primary -space-x-0.5',
+      'bg-primary px-2.5 hover:bg-zinc-700'
     )}
   >
     <Icon name={icon} size={10} className="text-teal-400" />

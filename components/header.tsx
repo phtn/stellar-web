@@ -8,6 +8,7 @@ import React from 'react'
 // import { Button } from './ui/button' // No longer needed directly here for Sign In button
 import GuestMenu from './guest-menu' // Import the new GuestMenu component
 import UserMenu from './user-menu'
+import { WalletConnector } from './wallet-connector'
 
 interface HeaderProps {
   user: User | null
@@ -27,7 +28,8 @@ export const Header = ({ user }: HeaderProps) => {
       <div></div>
 
       <div className="flex items-center gap-2">
-        {user ? <UserMenu user={user} /> : <GuestMenu />}
+        <WalletConnector />
+        <div>{user ? <UserMenu user={user} /> : <GuestMenu />}</div>
       </div>
     </header>
   )

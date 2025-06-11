@@ -16,11 +16,7 @@ interface VideoSearchSectionProps {
   onOpenChange: (open: boolean) => void
 }
 
-export function VideoSearchSection({
-  tool,
-  isOpen,
-  onOpenChange
-}: VideoSearchSectionProps) {
+export function VideoSearchSection({ tool }: VideoSearchSectionProps) {
   const { status } = useChat({
     id: CHAT_ID
   })
@@ -46,21 +42,21 @@ export function VideoSearchSection({
   )
 
   return (
-    <CollapsibleMessage
-      role="assistant"
-      isCollapsible={true}
-      header={header}
-      isOpen={isOpen}
-      onOpenChange={onOpenChange}
-      showIcon={false}
-    >
-      {!isLoading && videoResults ? (
-        <Section title="Videos">
-          <VideoSearchResults results={videoResults} />
-        </Section>
-      ) : (
-        <DefaultSkeleton />
-      )}
-    </CollapsibleMessage>
+    !isToolLoading && (
+      <CollapsibleMessage
+        role="assistant"
+        isCollapsible={true}
+        header={header}
+        showIcon={false}
+      >
+        {!isLoading && videoResults ? (
+          <Section title="Videos">
+            <VideoSearchResults results={videoResults} />
+          </Section>
+        ) : (
+          <DefaultSkeleton />
+        )}
+      </CollapsibleMessage>
+    )
   )
 }

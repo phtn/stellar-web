@@ -1,3 +1,5 @@
+'use client'
+
 import { SpeechToTextService } from '@/services/stt'
 import { useCallback, useRef, useState } from 'react'
 
@@ -5,12 +7,12 @@ type RecordingMethod = 'browser' | 'manual'
 
 /**
  * Custom hook to manage browser/manual voice recording and STT logic.
- * @param setInput - Function to update the chat input
+ * @param setInputAction - Function to update the chat input
  */
 export function useVoiceRecorder({
-  setInput
+  setInputAction
 }: {
-  setInput: (fn: (prev: string) => string) => void
+  setInputAction: (fn: (prev: string) => string) => void
 }) {
   const [isRecording, setIsRecording] = useState<boolean>(false)
   const [isProcessingAudio, setIsProcessingAudio] = useState<boolean>(false)
@@ -46,7 +48,7 @@ export function useVoiceRecorder({
         })
         const result = await response.json()
         if (result.success && result.text) {
-          setInput(prev => prev + result.text)
+          setInputAction(prev => prev + result.text)
         } else {
           console.error('STT failed:', result.error)
         }
@@ -56,7 +58,7 @@ export function useVoiceRecorder({
         setIsProcessingAudio(false)
       }
     },
-    [setInput]
+    [setInputAction]
   )
 
   // Manual recording
@@ -137,7 +139,7 @@ export function useVoiceRecorder({
         maxDurationMs: 10000,
         onResult: (finalTranscript, interimTranscript) => {
           if (finalTranscript) {
-            setInput(prev => prev + finalTranscript + '. ')
+            setInputAction(prev => prev + finalTranscript + '. ')
             setIsRecording(false)
           } else {
             console.log(interimTranscript)
@@ -152,7 +154,7 @@ export function useVoiceRecorder({
         }
       })
     }
-  }, [setInput])
+  }, [setInputAction])
 
   return {
     isRecording,

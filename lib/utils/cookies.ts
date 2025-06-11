@@ -7,13 +7,16 @@ export function setCookie(name: string, value: string, days = 30) {
 }
 
 export function getCookie(name: string): string | null {
-  const cookies = document.cookie.split(';')
-  for (const cookie of cookies) {
-    const [cookieName, cookieValue] = cookie.trim().split('=')
-    if (cookieName === name) {
-      return cookieValue
+  if (typeof document !== 'undefined' && 'cookie' in document) {
+    const cookies = document.cookie.split(';')
+    for (const cookie of cookies) {
+      const [cookieName, cookieValue] = cookie.trim().split('=')
+      if (cookieName === name) {
+        return cookieValue
+      }
     }
   }
+
   return null
 }
 

@@ -20,7 +20,7 @@ export const IconBtn = ({
   icon,
   iconSize = 16,
   solid,
-  size = 44,
+  size = 42,
   iconStyle,
   withShadow,
   shadowStyle,

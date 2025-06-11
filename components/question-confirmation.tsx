@@ -10,7 +10,11 @@ import { useState } from 'react'
 
 interface QuestionConfirmationProps {
   toolInvocation: ToolInvocation
-  onConfirm: (toolCallId: string, approved: boolean, response?: any) => void
+  onConfirmAction: (
+    toolCallId: string,
+    approved: boolean,
+    response?: any
+  ) => void
   isCompleted?: boolean
 }
 
@@ -21,7 +25,7 @@ interface QuestionOption {
 
 export function QuestionConfirmation({
   toolInvocation,
-  onConfirm,
+  onConfirmAction,
   isCompleted = false
 }: QuestionConfirmationProps) {
   const { question, options, allowsInput, inputLabel, inputPlaceholder } =
@@ -58,7 +62,7 @@ export function QuestionConfirmation({
   const handleSkip = () => {
     setSkipped(true)
     setCompleted(true)
-    onConfirm(toolInvocation.toolCallId, false, { skipped: true })
+    onConfirmAction(toolInvocation.toolCallId, false, { skipped: true })
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -70,7 +74,7 @@ export function QuestionConfirmation({
       question
     }
 
-    onConfirm(toolInvocation.toolCallId, true, response)
+    onConfirmAction(toolInvocation.toolCallId, true, response)
     setCompleted(true)
   }
 

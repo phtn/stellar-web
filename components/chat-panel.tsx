@@ -1,3 +1,6 @@
+'use client'
+
+import { Voices } from '@/lib/store/voiceSettings'
 import { Model } from '@/lib/types/models'
 import { cn } from '@/lib/utils'
 import { Message } from 'ai'
@@ -8,18 +11,18 @@ import { Babes, ToggleFeature } from './babes'
 import { EmptyScreen } from './empty-screen'
 import { IconBtn } from './icon-btn'
 import { Button } from './ui/button'
-import { Voices } from '@/lib/store/voiceSettings'
+import { set } from 'zod'
 
 interface ChatPanelProps {
   input: string
-  handleInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
-  handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void
+  handleInputChangeAction: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
+  handleSubmitAction: (e: React.FormEvent<HTMLFormElement>) => void
   isLoading: boolean
   messages: Message[]
   setMessages: (messages: Message[]) => void
   query?: string
-  stop: () => void
-  append: (message: any) => void
+  stopAction: () => void
+  appendAction: (message: any) => void
   models?: Model[]
   /** Whether to show the scroll to bottom button */
   showScrollToBottomButton: boolean
@@ -27,23 +30,23 @@ interface ChatPanelProps {
   scrollContainerRef: React.RefObject<HTMLDivElement>
   voiceToggle: VoidFunction
   voiceRecording: boolean
-  setVoice: (voice: Voices) => void
+  setVoiceAction: (voice: Voices) => void
 }
 
 export function ChatPanel({
   input,
-  handleInputChange,
-  handleSubmit,
+  handleInputChangeAction,
+  handleSubmitAction,
   isLoading,
   messages,
   query,
-  stop,
-  append,
+  stopAction,
+  appendAction,
   showScrollToBottomButton,
   scrollContainerRef,
   voiceToggle,
   voiceRecording,
-  setVoice
+  setVoiceAction
 }: ChatPanelProps) {
   const [showEmptyScreen, setShowEmptyScreen] = useState(false)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -86,7 +89,7 @@ export function ChatPanel({
   // if query is not empty, submit the query
   useEffect(() => {
     if (isFirstRender.current && query && query.trim().length > 0) {
-      append({
+      appendAction({
         role: 'user',
         content: query
       })
@@ -115,9 +118,12 @@ export function ChatPanel({
         }}
         solid={!voiceRecording}
         iconSize={20}
-        iconStyle={cn('group-hover:text-sky-600', {
-          'size-5 text-indigo-400 dark:text-indigo-500': voiceRecording
-        })}
+        iconStyle={cn(
+          'group-hover:text-sky-600 dark:group-hover:text-sky-400',
+          {
+            'size-5 text-indigo-400 dark:text-indigo-500': voiceRecording
+          }
+        )}
         withShadow={voiceRecording}
         icon={voiceRecording ? 'spinners-bars-middle' : 'microphone-noir'}
       />
@@ -134,6 +140,7 @@ export function ChatPanel({
         type: isLoading ? 'button' : 'submit'
       }}
       solid={!voiceRecording}
+      iconSize={20}
       iconStyle={cn('text-teal-300 ', {
         'text-zinc-800':
           (input.length === 0 && !isLoading) || isToolInvocationInProgress()
@@ -152,25 +159,38 @@ export function ChatPanel({
 
   const startVoiceChat = useCallback(
     (voice: Voices) => {
-      append({
+      appendAction({
         role: 'user',
         content: "What's good?"
       })
-      setVoice(voice)
+      setVoiceAction(voice)
     },
-    [setVoice, append]
+    [setVoiceAction, appendAction]
   )
+
+  const setFocus = useCallback(() => {
+    inputRef?.current?.focus()
+  }, [])
+
+  useEffect(() => {
+    if (!isLoading) {
+      setFocus()
+    }
+  }, [setFocus, isLoading])
 
   return (
     <div
       className={cn(
-        'w-full relative z-10 group/form-container shrink-0',
-        messages.length > 0 ? 'sticky bottom-0 px-2 pb-4' : 'px-6'
+        'w-full sticky z-10 pb-6 md:px-6 px-2 group/form-container shrink-0',
+        {
+          'sticky bottom-0 px-2 pb-4': messages.length > 0,
+          '': messages.length === 0
+        }
       )}
     >
-      {messages.length === 0 && <Babes startVoiceChat={startVoiceChat} />}
+      {messages.length === 0 && <Babes startVoiceChatAction={startVoiceChat} />}
       <form
-        onSubmit={handleSubmit}
+        onSubmit={handleSubmitAction}
         className={cn('max-w-3xl w-full mx-auto relative')}
       >
         {/* Scroll to bottom button - only shown when showScrollToBottomButton is true */}
@@ -219,7 +239,7 @@ export function ChatPanel({
             disabled={isLoading || isToolInvocationInProgress()}
             className="resize-none w-full min-h-12 bg-transparent font-space border-0 py-4 px-5 text-sm placeholder:text-muted-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             onChange={e => {
-              handleInputChange(e)
+              handleInputChangeAction(e)
               setShowEmptyScreen(e.target.value.length === 0)
             }}
             onKeyDown={e => {
@@ -236,15 +256,15 @@ export function ChatPanel({
                 e.preventDefault()
                 const textarea = e.target as HTMLTextAreaElement
                 textarea.form?.requestSubmit()
+                setFocus()
               }
             }}
             onFocus={() => setShowEmptyScreen(true)}
-            onBlur={() => setShowEmptyScreen(false)}
           />
 
           {/* Bottom menu area */}
           <div className="flex items-center justify-between p-3">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-0">
               {/* <ModelSelector models={models ?? []} /> */}
               <ToggleFeature
                 label="Search"
@@ -272,11 +292,11 @@ export function ChatPanel({
         {messages.length === 0 && (
           <EmptyScreen
             submitMessage={message => {
-              handleInputChange({
+              handleInputChangeAction({
                 target: { value: message }
               } as React.ChangeEvent<HTMLTextAreaElement>)
             }}
-            className={cn(showEmptyScreen ? 'visible' : 'invisible')}
+            className={cn('hidden', showEmptyScreen ? 'visible' : 'invisible')}
           />
         )}
       </form>

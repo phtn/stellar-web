@@ -5,6 +5,7 @@
 @theme {
   --tracking-snug: -0.045em;
   --tracking-teen: -0.05em;
+  --w3m-font-size: 12;
 }
 @layer base {
   :root {

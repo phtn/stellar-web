@@ -56,8 +56,6 @@ export function ReasoningSection({
         role="assistant"
         isCollapsible={true}
         header={reasoningHeader}
-        isOpen={isOpen}
-        onOpenChange={onOpenChange}
         showBorder={true}
         showIcon={false}
       >

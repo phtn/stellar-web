@@ -28,5 +28,15 @@ export const setVoice = async (voice: Voices) => {
 
 export const getVoice = async () => {
   const store = await cookies()
-  return store.get('cr-vc')?.value
+  return store.get('cr-vc')?.value ?? null
+}
+
+export const setVoiceState = async (state: 'enabled' | 'disabled') => {
+  const store = await cookies()
+  store.set('vc-st', state, { ...opts })
+}
+
+export const getVoiceState = async () => {
+  const store = await cookies()
+  return store.get('vc-st')?.value
 }

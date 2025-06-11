@@ -1,14 +1,13 @@
 'use client'
 
-import { getVoice } from '@/app/actions'
+import { MessageCtx, MessageCtxProvider } from '@/ctx/chat/message-ctx'
 import {
-  getMessages,
-  getRecentConversationsForUser,
   updateMessageWithAudioUrl,
   uploadVoiceResponse
 } from '@/lib/firebase/conversations'
 import { useAudioPlayback } from '@/lib/hooks/use-audio-playback'
 import { useAutoScroll } from '@/lib/hooks/use-auto-scroll'
+import { useChatOptions } from '@/lib/hooks/use-chat-options'
 import { useConversation } from '@/lib/hooks/use-conversation'
 import { useVoiceRecorder } from '@/lib/hooks/use-voice-recorder'
 import { useVoiceSettings } from '@/lib/store/voiceSettings'
@@ -20,8 +19,8 @@ import type { Message } from 'ai/react'
 import {
   type FormEvent,
   useCallback,
+  useContext,
   useEffect,
-  useMemo,
   useRef,
   useState
 } from 'react'
@@ -29,148 +28,109 @@ import { toast } from 'sonner'
 import { ChatMessages } from './chat-messages'
 import { ChatPanel } from './chat-panel'
 import { cleanForTTS } from './message'
-
-// Define section structure
-interface ChatSection {
-  id: string // User message ID
-  userMessage: Message
-  assistantMessages: Message[]
-}
-
-// Add a function to detect actions/gestures
-function isActionOrGesture(content: string) {
-  const trimmed = content.trim()
-  // Matches *action*, /action/, (action), possibly with whitespace
-  return (
-    /^\*.*\*$/.test(trimmed) ||
-    /^\/.*\/$/.test(trimmed) ||
-    /^\(.*\)$/.test(trimmed)
-  )
-}
+import { createSections } from '@/ctx/chat/helpers'
+import { ChatSection } from '@/ctx/chat/types'
 
 interface IChat {
   id: string
   query?: string
   models?: Model[]
-  savedMessages?: Message[]
+  initialMessages?: Message[]
 }
-export function Chat({ id, savedMessages = [], query, models }: IChat) {
+
+// Child component to sync context after sending
+function ChatContextSync({
+  id,
+  messages
+}: {
+  id: string
+  messages: Message[]
+}) {
+  const { loadMessages } = useContext(MessageCtx)!
+
+  // LOG: messages from useChat
+  useEffect(() => {
+    // console.log('[Chat] useChat messages:', messages)
+  }, [messages])
+
+  // Sync context messages after sending
+  useEffect(() => {
+    if (loadMessages && id && messages.length > 0) {
+      // console.log('[Chat] Calling loadMessages with id:', id)
+      loadMessages(id)
+    }
+  }, [messages, loadMessages, id])
+
+  return null
+}
+
+export function Chat({ id, initialMessages, query, models }: IChat) {
+  const [assistant, setAssistantAction] = useState<Message | null>(null)
   // Use the new auto scroll hook
   const { scrollContainerRef, isAtBottom, scrollToSection } = useAutoScroll()
+
+  // Use the new hook for Firestore logic
+  const {
+    convId,
+    addMessage,
+    hasStarted,
+    handleFirstMessage,
+    handleSubsequentMessage
+  } = useConversation({ id })
+
+  const chatOptions = useChatOptions({
+    id,
+    setAssistantAction,
+    messages: initialMessages
+  })
+
+  // Use useChat for chat UI logic
+  const {
+    stop,
+    data,
+    input,
+    append,
+    status,
+    reload,
+    setData,
+    messages,
+    setInput,
+    setMessages,
+    handleSubmit,
+    addToolResult,
+    handleInputChange
+  } = useChat(chatOptions)
+
+  const { voiceEngine, outputMode, voice, setVoice } = useVoiceSettings()
 
   // Add audioRef for useAudioPlayback and <audio>
   const audioRef = useRef<HTMLAudioElement>(null)
 
-  // Use the new hook for Firestore logic
-  const {
-    conversationId,
-    setConversationId,
-    hasStarted,
-    setHasStarted,
-    createConversation,
-    addMessage
-  } = useConversation({ id, savedMessages })
-
-  // Use useChat for chat UI logic
-  const {
-    input,
-    setInput,
-    handleInputChange,
-    handleSubmit,
-    status,
-    stop,
-    append,
-    data,
-    setData,
-    addToolResult,
-    reload,
-    messages,
-    setMessages
-  } = useChat({
-    initialMessages: savedMessages,
-    id,
-    body: { id },
-    onFinish: async msg => {
-      if (
-        msg.role === 'assistant' &&
-        msg.content.trim() &&
-        !isActionOrGesture(msg.content)
-      ) {
-        setPendingAssistantMsg(msg)
-      }
-    },
-    onError: error => {
-      toast.error(`Error in chat: ${error.message}`)
-    },
-    sendExtraMessageFields: false,
-    experimental_throttle: 100
-  })
-
-  const { voiceEngine, outputMode, voice, setVoice } = useVoiceSettings()
-
   // Use the new audio playback hook
-  const {
-    audioStates,
-    setAudioStates,
-    generateSpeech,
-    isTTSPlaying,
-    isGeneratingAudio
-  } = useAudioPlayback({
-    voiceEngine,
-    outputMode,
-    voice,
-    audioRef,
-    uploadVoiceResponse,
-    updateMessageWithAudioUrl,
-    cleanForTTS
-  })
-
-  const [pendingAssistantMsg, setPendingAssistantMsg] =
-    useState<Message | null>(null)
+  const { audioStates, generateSpeech, setAudioStates, isGeneratingAudio } =
+    useAudioPlayback({
+      voice,
+      audioRef,
+      outputMode,
+      voiceEngine,
+      cleanForTTS,
+      enabled: false,
+      uploadVoiceResponse,
+      updateMessageWithAudioUrl
+    })
 
   // Use the new voice recorder hook
   const {
     isRecording,
+    initializeSTT,
     isProcessingAudio,
-    handleRecordingToggle,
-    initializeSTT
-  } = useVoiceRecorder({ setInput })
+    handleRecordingToggle
+  } = useVoiceRecorder({ setInputAction: setInput })
 
   // Initialize browser STT service on mount
   useEffect(() => {
     initializeSTT()
   }, [initializeSTT])
-
-  // Convert messages array to sections array
-  const sections = useMemo<ChatSection[]>(() => {
-    const result: ChatSection[] = []
-    let currentSection: ChatSection | null = null
-
-    for (const message of messages) {
-      if (message.role === 'user') {
-        // Start a new section when a user message is found
-        if (currentSection) {
-          result.push(currentSection)
-        }
-        currentSection = {
-          id: message.id,
-          userMessage: message,
-          assistantMessages: []
-        }
-      } else if (currentSection && message.role === 'assistant') {
-        // Add assistant message to the current section
-        currentSection.assistantMessages.push(message)
-      }
-      // Ignore other role types like 'system' for now
-    }
-
-    // Add the last section if exists
-    if (currentSection) {
-      result.push(currentSection)
-    }
-
-    return result
-  }, [messages])
 
   // Replace scroll-to-section effect with:
   useEffect(() => {
@@ -200,7 +160,7 @@ export function Chat({ id, savedMessages = [], query, models }: IChat) {
         )
       )
       try {
-        const messageIndex = messages.findIndex(msg => msg.id === messageId)
+        const messageIndex = messages.findIndex(({ id }) => id === messageId)
         if (messageIndex === -1) return
         const messagesUpToEdited = messages.slice(0, messageIndex + 1)
         setMessages(messagesUpToEdited)
@@ -245,43 +205,7 @@ export function Chat({ id, savedMessages = [], query, models }: IChat) {
     handleSubmit(e)
   }
 
-  // Update handleFirstMessage to use hook
-  const handleFirstMessage = useCallback(
-    async (message: Message) => {
-      // Always call createConversation for the first user message
-      const userId = 'demo-user'
-      const assistantName = (await getVoice()) ?? 'Assistant'
-
-      try {
-        const convId = await createConversation(
-          userId,
-          message.content.slice(0, 32),
-          assistantName
-        )
-        setConversationId(convId)
-        await addMessage(convId, message.id, message.role, message.content)
-        setHasStarted(true)
-      } catch (err) {
-        console.error('[handleFirstMessage] createConversation error', err)
-      }
-    },
-    [createConversation, addMessage, setConversationId, setHasStarted]
-  )
-
   // Update handleSubsequentMessage to use hook
-  const handleSubsequentMessage = useCallback(
-    async (message: Message) => {
-      if (conversationId) {
-        await addMessage(
-          conversationId,
-          message.id,
-          message.role,
-          message.content
-        )
-      }
-    },
-    [conversationId, addMessage]
-  )
 
   // Intercept message sending
   useEffect(() => {
@@ -289,10 +213,6 @@ export function Chat({ id, savedMessages = [], query, models }: IChat) {
     const lastMessage = messages[messages.length - 1]
     if (lastMessage.role === 'user') {
       if (!hasStarted) {
-        console.log(
-          '[useEffect:messages] calling handleFirstMessage',
-          lastMessage
-        )
         handleFirstMessage(lastMessage)
       } else {
         handleSubsequentMessage(lastMessage)
@@ -300,46 +220,12 @@ export function Chat({ id, savedMessages = [], query, models }: IChat) {
     }
   }, [messages, hasStarted, handleFirstMessage, handleSubsequentMessage])
 
-  // Only load Firestore messages on initial conversation load and if chat is empty
-  const initialLoadRef = useRef(false)
-
-  useEffect(() => {
-    if (conversationId && !initialLoadRef.current && messages.length === 0) {
-      ;(async () => {
-        const msgs = await getMessages(conversationId)
-        setMessages(
-          msgs.map((msg: any) => ({
-            id: msg.id,
-            role: msg.role,
-            content: msg.content
-            // Do not include audioUrl here
-          }))
-        )
-        initialLoadRef.current = true
-      })()
-    }
-  }, [conversationId, setMessages, messages.length])
-
-  // Fetch 10 recent conversations for context
-  const fetchRecentConversations = useCallback(async () => {
-    // TODO: Replace with actual user id from auth
-    const userId = 'demo-user'
-    const recentConvos = await getRecentConversationsForUser(userId, 10)
-    // Use recentConvos as needed for context
-    return recentConvos
-  }, [])
-
-  // Optionally, fetch recent conversations on mount or when needed
-  useEffect(() => {
-    fetchRecentConversations()
-  }, [fetchRecentConversations])
-
   useEffect(() => {
     // Initialize audioStates for messages with audioUrl (e.g., when loading a conversation)
-    if (savedMessages && savedMessages.length > 0) {
+    if (initialMessages && initialMessages.length > 0) {
       setAudioStates(prev => {
         const newStates = { ...prev }
-        for (const msg of savedMessages as any[]) {
+        for (const msg of initialMessages as any[]) {
           if (msg.audioUrl) {
             newStates[msg.id] = { url: msg.audioUrl, status: 'playable' }
           }
@@ -347,62 +233,61 @@ export function Chat({ id, savedMessages = [], query, models }: IChat) {
         return newStates
       })
     }
-  }, [savedMessages, setAudioStates])
+  }, [initialMessages, setAudioStates])
 
   useEffect(() => {
-    if (conversationId && pendingAssistantMsg) {
+    if (convId && assistant) {
       ;(async () => {
-        await addMessage(
-          conversationId,
-          pendingAssistantMsg.id,
-          pendingAssistantMsg.role,
-          pendingAssistantMsg.content
-        )
-        await generateSpeech(pendingAssistantMsg, conversationId)
-        setPendingAssistantMsg(null)
+        await addMessage({ convId, message: assistant })
+        await generateSpeech(assistant, convId)
+        setAssistantAction(null)
       })()
     }
-  }, [conversationId, pendingAssistantMsg, generateSpeech, addMessage])
+  }, [convId, assistant, generateSpeech, addMessage])
 
   return (
     <div
+      data-testid="full-chat"
       className={cn(
         'relative flex h-full flex-1 flex-col',
         messages.length === 0 ? 'items-center justify-center' : ''
       )}
-      data-testid="full-chat"
     >
-      <ChatMessages
-        chatId={id}
-        data={data}
-        sections={sections}
-        reload={handleReloadFrom}
-        isTTSPlaying={isTTSPlaying}
-        onQuerySelect={onQuerySelect}
-        addToolResult={addToolResult}
-        scrollContainerRef={scrollContainerRef}
-        isLoading={
-          status === 'submitted' || status === 'streaming' || isGeneratingAudio
-        }
-        onUpdateMessage={handleUpdateAndReloadMessage}
-        audioStates={audioStates}
-      />
+      <MessageCtxProvider messages={messages}>
+        <ChatContextSync id={id} messages={messages} />
+        <ChatMessages
+          data={data}
+          chatId={id}
+          reload={handleReloadFrom}
+          onQuerySelectAction={onQuerySelect}
+          addToolResult={addToolResult}
+          scrollContainerRef={scrollContainerRef}
+          isLoading={
+            status === 'submitted' ||
+            status === 'streaming' ||
+            isGeneratingAudio
+          }
+          onUpdateMessage={handleUpdateAndReloadMessage}
+          audioStates={audioStates}
+        />
+      </MessageCtxProvider>
+
       <ChatPanel
-        stop={stop}
+        stopAction={stop}
         input={input}
         query={query}
-        append={append}
+        appendAction={append}
         models={models}
         messages={messages}
         isLoading={status === 'submitted' || status === 'streaming'}
-        handleSubmit={onSubmit}
+        handleSubmitAction={onSubmit}
         setMessages={setMessages}
         voiceToggle={handleRecordingToggle}
-        handleInputChange={handleInputChange}
+        handleInputChangeAction={handleInputChange}
         showScrollToBottomButton={!isAtBottom}
         scrollContainerRef={scrollContainerRef}
         voiceRecording={isProcessingAudio || isRecording}
-        setVoice={setVoice}
+        setVoiceAction={setVoice}
       />
       <audio ref={audioRef} style={{ display: 'none' }} />
     </div>

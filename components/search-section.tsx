@@ -17,11 +17,7 @@ interface SearchSectionProps {
   onOpenChange: (open: boolean) => void
 }
 
-export function SearchSection({
-  tool,
-  isOpen,
-  onOpenChange
-}: SearchSectionProps) {
+export function SearchSection({ tool }: SearchSectionProps) {
   const { status } = useChat({
     id: CHAT_ID
   })
@@ -53,12 +49,10 @@ export function SearchSection({
 
   return (
     <CollapsibleMessage
-      role="assistant"
-      isCollapsible={true}
       header={header}
-      isOpen={isOpen}
-      onOpenChange={onOpenChange}
+      role="assistant"
       showIcon={false}
+      isCollapsible={true}
     >
       {searchResults &&
         searchResults.images &&

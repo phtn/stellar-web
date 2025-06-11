@@ -1,19 +1,20 @@
 'use client'
 
-import { SidebarGroup, SidebarGroupLabel } from '@/components/ui/sidebar'
+import { SidebarGroup } from '@/components/ui/sidebar'
 import {
   deleteConversation,
   getConversationsForUser
 } from '@/lib/firebase/conversations'
-import { Chat } from '@/lib/types'
+import { IConversation } from '@/lib/firebase/types'
+import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { useCallback, useEffect, useRef, useState, useTransition } from 'react'
 import { toast } from 'sonner'
-import { ChatHistorySkeleton } from './chat-history-skeleton'
 import { Badge } from '../ui/badge'
+import { ChatHistorySkeleton } from './chat-history-skeleton'
 
 export function ChatHistoryClient() {
-  const [chats, setChats] = useState<Chat[]>([])
+  const [chats, setChats] = useState<IConversation[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const loadMoreRef = useRef<HTMLDivElement>(null)
   const [isPending, startTransition] = useTransition()
@@ -27,7 +28,6 @@ export function ChatHistoryClient() {
       const conversations = await getConversationsForUser(userId)
       setChats(conversations)
     } catch (error) {
-      console.error('Failed to load conversations:', error)
       toast.error('Failed to load chat history.')
     } finally {
       setIsLoading(false)
@@ -76,20 +76,27 @@ export function ChatHistoryClient() {
                   >
                     <Link
                       href={`/chat/${chat.id}`}
-                      className="px-4 py-1 rounded-lg dark:hover:bg-sidebar-accent/60 hover:bg-sidebar-border group/link space-x-3 flex-1 flex items-center"
+                      className="ps-2.5 overflow-hidden rounded-lg dark:hover:bg-sidebar-accent/60 hover:bg-sidebar-border group/link space-x-3 flex-1 flex items-center"
                     >
-                      <span className="font-medium text-base scale-105 font-space dark:text-sidebar-foreground/70 text-sidebar-foreground group-hover/link:text-sidebar-foreground truncate tracking-snug">
+                      <div
+                        className={cn(
+                          'h-10 flex items-center font-medium font-space truncate tracking-snug',
+                          ' text-base text-sidebar-foreground dark:text-sidebar-foreground/70 leading-none',
+                          ' group-hover/li:scale-110 scale-105 group-hover/li:text-sidebar-foreground',
+                          'transition-all duration-200 ease-out'
+                        )}
+                      >
                         {chat.title}
-                      </span>
+                      </div>
                       <Badge
                         variant="default"
                         className="flex items-center group/badge h-5 px-1 rounded-lg bg-orange-200/60 dark:bg-zinc-900 border-[0.33px] dark:border-zinc-700"
                       >
                         <span className="font-sans group-hover/badge:text-orange-200 dark:text-teal-300/80 text-xs text-sidebar-foreground uppercase">
-                          {chat.assistantName}
+                          {chat.assistant}
                         </span>
                         <span className="font-light hidden text-sm text-indigo-200 tracking-tight">
-                          {chat.assistantName}
+                          {chat.assistant}
                         </span>
                       </Badge>
                     </Link>
