@@ -65,6 +65,7 @@ export async function getModels(): Promise<Model[]> {
         engines.models.every(validateModel)
       ) {
         console.log('Successfully loaded default models')
+        console.table(engines.models)
         return engines.models
       }
     }

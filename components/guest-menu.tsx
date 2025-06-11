@@ -3,13 +3,8 @@
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
-import { ExternalLinkItems } from './external-link-items'
 import { IconBtn } from './icon-btn'
 import { ThemeMenuItems } from './theme-menu-items'
 
@@ -28,7 +23,8 @@ export default function GuestMenu() {
       <DropdownMenuContent
         forceMount
         align="end"
-        className="w-fit text-end mr-2.5 font-space border-0 bg-stone-100 dark:bg-sidebar-accent"
+        sideOffset={8}
+        className="w-fit text-end mr-2 font-space dark:border-transparent bg-sidebar-accent border-sidebar-primary/30 dark:bg-sidebar-accent"
       >
         <ThemeMenuItems />
         {/* <DropdownMenuItem asChild>

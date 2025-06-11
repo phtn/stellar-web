@@ -1,32 +1,44 @@
-import { useCallback, useState } from 'react'
+import { RefObject, useCallback, useState } from 'react'
+import {
+  UpdateMessageWithAudioParams,
+  UploadVoiceParams
+} from '../firebase/types'
 
 /**
  * Custom hook to manage audio state, TTS generation, and playback for chat messages.
- * @param voiceEngine - The selected TTS engine
- * @param outputMode - The TTS output mode
  * @param voice - The selected voice
+ * @param enabled - Voice enabled status
  * @param audioRef - Ref to the audio element for playback
+ * @param outputMode - The TTS output mode
+ * @param voiceEngine - The selected TTS engine
+ * @param cleanForTTS - Function to clean message content for TTS
  * @param uploadVoiceResponse - Function to upload audio to storage
  * @param updateMessageWithAudioUrl - Function to update Firestore message with audio URL
- * @param cleanForTTS - Function to clean message content for TTS
  */
+
+interface IUseAudioPlayback {
+  voice: string
+  enabled: boolean
+  audioRef: RefObject<HTMLAudioElement>
+  outputMode: string
+  voiceEngine: string
+  cleanForTTS: (content: string) => string
+  uploadVoiceResponse: (params: UploadVoiceParams) => Promise<string>
+  updateMessageWithAudioUrl: (
+    params: UpdateMessageWithAudioParams
+  ) => Promise<void>
+}
+
 export function useAudioPlayback({
-  voiceEngine,
-  outputMode,
   voice,
   audioRef,
+  outputMode,
+  voiceEngine,
+  cleanForTTS,
+  enabled = false,
   uploadVoiceResponse,
-  updateMessageWithAudioUrl,
-  cleanForTTS
-}: {
-  voiceEngine: string
-  outputMode: string
-  voice: string
-  audioRef: React.RefObject<HTMLAudioElement>
-  uploadVoiceResponse: (convId: string, msgId: string, audioBlob: Blob) => Promise<string>
-  updateMessageWithAudioUrl: (convId: string, msgId: string, audioUrl: string) => Promise<void>
-  cleanForTTS: (content: string) => string
-}) {
+  updateMessageWithAudioUrl
+}: IUseAudioPlayback) {
   const [audioStates, setAudioStates] = useState<Record<string, any>>({})
   const [isGeneratingAudio, setIsGeneratingAudio] = useState<boolean>(false)
   const [isTTSPlaying, setIsTTSPlaying] = useState(false)
@@ -36,10 +48,15 @@ export function useAudioPlayback({
    */
   const generateSpeech = useCallback(
     async (msg: any, convId: string): Promise<void> => {
-      const msgId = msg.id
-      setAudioStates(prev => ({ ...prev, [msgId]: { status: 'receiving' } }))
+      const messageId = msg.id
+      setAudioStates(prev => ({
+        ...prev,
+        [messageId]: { status: 'receiving' }
+      }))
       try {
-        // 1. Get TTS audio
+        // 1. Check if Voice is enabled
+        if (!enabled) return
+        // 2. Get TTS audio
         const response = await fetch('/api/tts/playht', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -52,40 +69,47 @@ export function useAudioPlayback({
         })
         if (!response.ok) throw new Error('TTS request failed')
         const audioBlob = await response.blob()
-        setAudioStates(prev => ({ ...prev, [msgId]: { status: 'uploading' } }))
+        setAudioStates(prev => ({
+          ...prev,
+          [messageId]: { status: 'uploading' }
+        }))
         if (!convId) {
           setAudioStates(prev => ({
             ...prev,
-            [msgId]: { status: 'error', error: 'No conversationId' }
+            [messageId]: { status: 'error', error: 'No conversationId' }
           }))
           return
         }
         // 2. Upload to Firebase Storage
-        const storageUrl = await uploadVoiceResponse(convId, msgId, audioBlob)
+        const audioUrl = await uploadVoiceResponse({
+          convId,
+          messageId,
+          audioBlob
+        })
         setAudioStates(prev => ({
           ...prev,
-          [msgId]: { status: 'uploaded', url: storageUrl }
+          [messageId]: { status: 'uploaded', url: audioUrl }
         }))
         // 3. Update Firestore
-        await updateMessageWithAudioUrl(convId, msgId, storageUrl)
+        await updateMessageWithAudioUrl({ convId, messageId, audioUrl })
         setAudioStates(prev => ({
           ...prev,
-          [msgId]: { status: 'playable', url: storageUrl }
+          [messageId]: { status: 'playable', url: audioUrl }
         }))
         // 4. Optionally, play the audio
         if (audioRef.current) {
-          audioRef.current.src = storageUrl
+          audioRef.current.src = audioUrl
           await audioRef.current.play()
           setAudioStates(prev => ({
             ...prev,
-            [msgId]: { ...prev[msgId], status: 'playing' }
+            [messageId]: { ...prev[messageId], status: 'playing' }
           }))
           audioRef.current.addEventListener(
             'ended',
             () => {
               setAudioStates(prev => ({
                 ...prev,
-                [msgId]: { ...prev[msgId], status: 'playable' }
+                [messageId]: { ...prev[messageId], status: 'playable' }
               }))
               setIsTTSPlaying(false)
             },
@@ -97,14 +121,23 @@ export function useAudioPlayback({
       } catch (error: any) {
         setAudioStates(prev => ({
           ...prev,
-          [msgId]: { status: 'error', error: error.message }
+          [messageId]: { status: 'error', error: error.message }
         }))
         setIsTTSPlaying(false)
       } finally {
         setIsGeneratingAudio(false)
       }
     },
-    [voiceEngine, outputMode, voice, audioRef, uploadVoiceResponse, updateMessageWithAudioUrl, cleanForTTS]
+    [
+      voice,
+      enabled,
+      audioRef,
+      outputMode,
+      voiceEngine,
+      cleanForTTS,
+      uploadVoiceResponse,
+      updateMessageWithAudioUrl
+    ]
   )
 
   return {
@@ -116,4 +149,4 @@ export function useAudioPlayback({
     isGeneratingAudio,
     setIsGeneratingAudio
   }
-} 
+}

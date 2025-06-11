@@ -3,16 +3,19 @@ import ArtifactRoot from '@/components/artifact/artifact-root'
 import Header from '@/components/header'
 import { ThemeProvider } from '@/components/theme-provider'
 import { SidebarProvider } from '@/components/ui/sidebar'
-import { Toaster } from '@/components/ui/sonner'
 import { createClient } from '@/lib/supabase/server'
 import { cn } from '@/lib/utils'
 // import { Analytics } from '@vercel/analytics/next'
-import AuthGate from '@/components/AuthGate'
+// import AuthGate from '@/components/AuthGate'
 import { Providers } from '@/ctx'
 import type { Metadata, Viewport } from 'next'
 import { Inter as FontSans, Space_Grotesk } from 'next/font/google'
-import Script from 'next/script'
 import './globals.css'
+import { cookieToInitialState } from 'wagmi'
+import { headers } from 'next/headers'
+import { config } from '@/ctx/wagmi/config'
+import WagmiContext from '@/ctx/wagmi'
+import { Toasts } from '@/ctx/toast'
 
 const fontSans = FontSans({
   subsets: ['latin'],
@@ -26,8 +29,13 @@ const title = 'Stellar'
 const description =
   'A fully open-source AI-powered answer engine with a generative UI.'
 
+const url =
+  process.env.NODE_ENV === 'development'
+    ? `http://${process.env.NODE_ENV}:3000`
+    : 'https://valkyrie-two.vercel.app'
+
 export const metadata: Metadata = {
-  metadataBase: new URL('https://stellar.sh'),
+  metadataBase: new URL(url),
   title,
   description,
   openGraph: {
@@ -67,6 +75,11 @@ export default async function RootLayout({
     user = supabaseUser
   }
 
+  const initialState = cookieToInitialState(
+    config,
+    (await headers()).get('cookie')
+  )
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body
@@ -77,28 +90,30 @@ export default async function RootLayout({
         )}
         style={{ minHeight: '100vh', height: '100vh' }}
       >
-        <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" />
-        <AuthGate />
-        <Providers>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            <SidebarProvider defaultOpen>
-              <AppSidebar />
-              <div className="flex flex-col flex-1 h-full min-h-0">
-                <Header user={user} />
-                <main className="flex flex-1 min-h-0 h-full">
-                  <ArtifactRoot>{children}</ArtifactRoot>
-                </main>
-              </div>
-            </SidebarProvider>
-            <Toaster />
-            {/* <Analytics /> */}
-          </ThemeProvider>
-        </Providers>
+        {/* <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" /> */}
+        {/* <AuthGate /> */}
+        <WagmiContext cookies={''}>
+          <Providers initialState={initialState}>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem
+              disableTransitionOnChange
+            >
+              <SidebarProvider defaultOpen>
+                <AppSidebar />
+                <div className="flex flex-col flex-1 h-full min-h-0">
+                  <Header user={user} />
+                  <main className="flex flex-1 min-h-0 h-full">
+                    <ArtifactRoot>{children}</ArtifactRoot>
+                  </main>
+                </div>
+              </SidebarProvider>
+              <Toasts />
+              {/* <Analytics /> */}
+            </ThemeProvider>
+          </Providers>
+        </WagmiContext>
       </body>
     </html>
   )

@@ -1,6 +1,7 @@
+'use client'
+
 import { Icon } from '@/lib/icons'
 import { cn } from '@/lib/utils'
-import { ChatRequestOptions } from 'ai'
 import { format } from 'date-fns'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { CollapsibleMessage } from './collapsible-message'
@@ -12,30 +13,20 @@ import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
 
 export type AnswerSectionProps = {
   content: string
-  isOpen: boolean
   onOpenChange: (open: boolean) => void
   chatId?: string
   showActions?: boolean
   messageId: string
-  reload?: (
-    messageId: string,
-    options?: ChatRequestOptions
-  ) => Promise<string | null | undefined>
-  isTTSPlaying?: boolean
   audioUrl?: string
   audioStatus?: string
 }
 
 export function AnswerSection({
-  content,
-  isOpen,
-  onOpenChange,
   chatId,
-  showActions = true, // Default to true for backward compatibility
-  messageId,
-  reload,
-  isTTSPlaying,
+  content,
   audioUrl,
+  messageId,
+  showActions, // Default to true for backward compatibility
   audioStatus
 }: AnswerSectionProps) {
   const enableShare = process.env.NEXT_PUBLIC_ENABLE_SHARE === 'true'
@@ -48,13 +39,6 @@ export function AnswerSection({
       setTimestamp(format(date, 'p'))
     }
   }, [content])
-
-  const handleReload = () => {
-    if (reload) {
-      return reload(messageId)
-    }
-    return Promise.resolve(undefined)
-  }
 
   // Voice playback logic
   const audioRef = useRef<HTMLAudioElement>(null)
@@ -88,22 +72,25 @@ export function AnswerSection({
             ? 'tri'
             : audioStatus === 'playing'
               ? 'spinners-bars-middle'
-              : 'spinners-3-dots-move'
+              : audioStatus === 'error'
+                ? 'refresh'
+                : 'spinners-3-dots-move'
         }
         iconStyle={cn(
-          'text-indigo-500 group-hover:text-teal-500 dark:text-indigo-500 size-6',
+          'text-indigo-500 group-hover:text-teal-500 dark:text-indigo-500 size-4',
           {
-            'text-stone-400 size-2.5': isTTSPlaying,
-            'size-2.5 dark:text-indigo-300': audioStatus === 'receiving',
-            'size-2.5 dark:text-orange-200': audioStatus === 'uploading',
-            'size-2.5 dark:text-cyan-500': audioStatus === 'uploaded',
-            'dark:text-teal-400 size-3.5': audioStatus === 'playable',
-            'dark:text-indigo-400 size-4': audioStatus === 'playing'
+            'text-rose-500 size-5': audioStatus === 'error',
+            'dark:text-indigo-300': audioStatus === 'receiving',
+            'dark:text-orange-200 text-orange-300': audioStatus === 'uploading',
+            'dark:text-cyan-300 text-cyan-500': audioStatus === 'uploaded',
+            'dark:text-teal-400 text-teal-500 size-5':
+              audioStatus === 'playable',
+            'dark:text-indigo-300 size-4': audioStatus === 'playing'
           }
         )}
       />
     ),
-    [handleVoicePlayback, isPlaying, isTTSPlaying, audioStatus]
+    [handleVoicePlayback, isPlaying, audioStatus]
   )
 
   const message = content ? (
@@ -120,7 +107,7 @@ export function AnswerSection({
           </AvatarFallback>
         </Avatar>
         <VoicePlayback />
-        {/* <VoiceStatusIndicator /> */}
+        <span>{audioStatus}</span>
       </div>
       <div className="p-6 border border-muted/20 dark:bg-sidebar bg-muted/80 rounded-2xl max-w-prose ">
         <AssistantMessage message={content} />
@@ -134,7 +121,6 @@ export function AnswerSection({
           <MessageActions
             chatId={chatId}
             message={content} // Keep original message content for copy
-            reload={handleReload}
             messageId={messageId}
             enableShare={enableShare}
           />
@@ -156,12 +142,10 @@ export function AnswerSection({
   )
   return (
     <CollapsibleMessage
-      isOpen={isOpen}
       showIcon={false}
       showBorder={false}
       role={'assistant'}
       isCollapsible={false}
-      onOpenChange={onOpenChange}
     >
       {message}
     </CollapsibleMessage>

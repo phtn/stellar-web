@@ -14,11 +14,7 @@ interface RetrieveSectionProps {
   onOpenChange: (open: boolean) => void
 }
 
-export function RetrieveSection({
-  tool,
-  isOpen,
-  onOpenChange
-}: RetrieveSectionProps) {
+export function RetrieveSection({ tool, isOpen }: RetrieveSectionProps) {
   const isLoading = tool.state === 'call'
   const data: SearchResultsType =
     tool.state === 'result' ? tool.result : undefined
@@ -43,8 +39,6 @@ export function RetrieveSection({
       role="assistant"
       isCollapsible={true}
       header={header}
-      isOpen={isOpen}
-      onOpenChange={onOpenChange}
       showIcon={false}
     >
       {!isLoading && data ? (

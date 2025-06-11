@@ -4,7 +4,7 @@ import { CHAT_ID } from '@/lib/constants'
 import { useChat } from '@ai-sdk/react'
 import { JSONValue } from 'ai'
 import { ArrowRight } from 'lucide-react'
-import React from 'react'
+import React, { useCallback } from 'react'
 import { CollapsibleMessage } from './collapsible-message'
 import { Section } from './section'
 import { Button } from './ui/button'
@@ -12,9 +12,7 @@ import { Skeleton } from './ui/skeleton'
 
 export interface RelatedQuestionsProps {
   annotations: JSONValue[]
-  onQuerySelect: (query: string) => void
-  isOpen: boolean
-  onOpenChange: (open: boolean) => void
+  onQuerySelectAction: (query: string) => void
 }
 
 interface RelatedQuestionsAnnotation extends Record<string, JSONValue> {
@@ -26,14 +24,19 @@ interface RelatedQuestionsAnnotation extends Record<string, JSONValue> {
 
 export const RelatedQuestions: React.FC<RelatedQuestionsProps> = ({
   annotations,
-  onQuerySelect,
-  isOpen,
-  onOpenChange
+  onQuerySelectAction
 }) => {
   const { status } = useChat({
     id: CHAT_ID
   })
   const isLoading = status === 'submitted' || status === 'streaming'
+
+  const handleQuerySelect = useCallback(
+    (query: string) => () => {
+      onQuerySelectAction(query)
+    },
+    [onQuerySelectAction]
+  )
 
   if (!annotations) {
     return null
@@ -53,8 +56,6 @@ export const RelatedQuestions: React.FC<RelatedQuestionsProps> = ({
       <CollapsibleMessage
         role="assistant"
         isCollapsible={false}
-        isOpen={isOpen}
-        onOpenChange={onOpenChange}
         showIcon={false}
       >
         <Skeleton className="w-full h-6" />
@@ -66,8 +67,6 @@ export const RelatedQuestions: React.FC<RelatedQuestionsProps> = ({
     <CollapsibleMessage
       role="assistant"
       isCollapsible={false}
-      isOpen={isOpen}
-      onOpenChange={onOpenChange}
       showIcon={false}
       showBorder={false}
     >
@@ -85,7 +84,7 @@ export const RelatedQuestions: React.FC<RelatedQuestionsProps> = ({
                     type="submit"
                     name={'related_query'}
                     value={item?.query}
-                    onClick={() => onQuerySelect(item?.query)}
+                    onClick={handleQuerySelect(item?.query)}
                   >
                     {item?.query}
                   </Button>

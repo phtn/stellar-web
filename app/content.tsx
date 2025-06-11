@@ -2,8 +2,12 @@
 
 import { Chat } from '@/components/chat'
 import { generateId } from 'ai'
+import { Model } from '@/lib/types/models'
 
-export const Content = () => {
+interface ContentProps {
+  models: Model[]
+}
+export const Content = ({ models }: ContentProps) => {
   const id = generateId()
-  return <Chat id={id} models={[]} />
+  return <Chat id={id} models={models} />
 }

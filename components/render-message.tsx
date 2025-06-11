@@ -1,5 +1,8 @@
-import { ChatRequestOptions, JSONValue, Message, ToolInvocation } from 'ai'
-import { useCallback, useEffect, useMemo } from 'react'
+'use client'
+
+import { MessageCtx } from '@/ctx/chat/message-ctx'
+import { JSONValue, Message, ToolInvocation } from 'ai'
+import { useCallback, useContext, useMemo } from 'react'
 import { AnswerSection } from './answer-section'
 import { ReasoningSection } from './reasoning-section'
 import RelatedQuestions from './related-questions'
@@ -9,17 +12,11 @@ import { UserMessage } from './user-message'
 interface RenderMessageProps {
   message: Message
   messageId: string
-  getIsOpen: (id: string) => boolean
-  onOpenChange: (id: string, open: boolean) => void
-  onQuerySelect: (query: string) => void
+  onOpenChangeAction: (id: string, open: boolean) => void
+  onQuerySelectAction: (query: string) => void
   chatId?: string
   addToolResult?: (params: { toolCallId: string; result: any }) => void
   onUpdateMessage?: (messageId: string, newContent: string) => Promise<void>
-  reload?: (
-    messageId: string,
-    options?: ChatRequestOptions
-  ) => Promise<string | null | undefined>
-  isTTSPlaying?: boolean
   audioUrl?: string
   audioStatus?: string
 }
@@ -27,17 +24,16 @@ interface RenderMessageProps {
 export function RenderMessage({
   message,
   messageId,
-  getIsOpen,
-  onOpenChange,
-  onQuerySelect,
+  onOpenChangeAction,
+  onQuerySelectAction,
   chatId,
   addToolResult,
   onUpdateMessage,
-  reload,
-  isTTSPlaying,
   audioUrl,
   audioStatus
 }: RenderMessageProps) {
+  const { getIsOpen } = useContext(MessageCtx)!
+
   const relatedQuestions = useMemo(
     () =>
       message.annotations?.filter(
@@ -81,8 +77,8 @@ export function RenderMessage({
   }, [message.annotations])
 
   const handleOpenChange = useCallback(
-    (id: string) => (open: boolean) => onOpenChange(id, open),
-    [onOpenChange]
+    (id: string) => (open: boolean) => onOpenChangeAction(id, open),
+    [onOpenChangeAction]
   )
   // Extract the unified reasoning annotation directly.
   const reasoningAnnotation = useMemo(() => {
@@ -120,15 +116,15 @@ export function RenderMessage({
   // New way: Use parts instead of toolInvocations
   return (
     <>
-      {/* {toolData.map(tool => (
+      {toolData.map(tool => (
         <ToolSection
           key={tool.toolCallId}
           tool={tool}
           isOpen={getIsOpen(tool.toolCallId)}
-          onOpenChange={open => onOpenChange(tool.toolCallId, open)}
+          onOpenChange={open => onOpenChangeAction(tool.toolCallId, open)}
           addToolResult={addToolResult}
         />
-      ))} */}
+      ))}
       {message.parts?.map((part, index) => {
         // Check if this is the last part in the array
         const isLastPart = index === (message.parts?.length ?? 0) - 1
@@ -149,16 +145,13 @@ export function RenderMessage({
             return (
               <AnswerSection
                 chatId={chatId}
-                reload={reload}
+                audioUrl={audioUrl}
                 content={part.text}
                 messageId={messageId}
                 showActions={isLastPart}
-                isTTSPlaying={isTTSPlaying}
-                isOpen={getIsOpen(messageId)}
+                audioStatus={audioStatus}
                 key={`${messageId}-text-${index}`}
                 onOpenChange={handleOpenChange(messageId)}
-                audioUrl={audioUrl}
-                audioStatus={audioStatus}
               />
             )
           case 'reasoning':
@@ -180,10 +173,8 @@ export function RenderMessage({
       })}
       {relatedQuestions && relatedQuestions.length > 0 && (
         <RelatedQuestions
-          onQuerySelect={onQuerySelect}
+          onQuerySelectAction={onQuerySelectAction}
           annotations={relatedQuestions as JSONValue[]}
-          isOpen={getIsOpen(`${messageId}-related`)}
-          onOpenChange={handleOpenChange(`${messageId}-related`)}
         />
       )}
     </>

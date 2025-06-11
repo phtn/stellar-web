@@ -94,8 +94,8 @@ function addToolMessageToChat({ messages }: IAddToolMessage) {
 
 export function convertToUIMessages(messages: Array<ExtendedCoreMessage>) {
   let pendingAnnotations: JSONValue[] = []
-  let pendingReasoning: string | undefined = undefined
-  let pendingReasoningTime: number | undefined = undefined
+  let pendingReasoning: JSONValue | null = null
+  let pendingReasoningTime: JSONValue | null = null
 
   return messages.reduce((chatMessages: Message[], message) => {
     // Handle tool messages
@@ -128,8 +128,9 @@ export function convertToUIMessages(messages: Array<ExtendedCoreMessage>) {
             // If content.data is an object, capture its reasoning and time;
             // otherwise treat it as a simple string.
             if (typeof content.data === 'object' && content.data !== null) {
-              pendingReasoning = (content.data as any).reasoning
-              pendingReasoningTime = (content.data as any).time
+              pendingReasoning =
+                'reasoning' in content.data && content.data.reasoning
+              pendingReasoningTime = 'time' in content.data && content.data.time
             } else {
               pendingReasoning = content.data as string
               pendingReasoningTime = 0
@@ -207,8 +208,8 @@ export function convertToUIMessages(messages: Array<ExtendedCoreMessage>) {
     // Clear pending state after processing an assistant message.
     if (message.role === 'assistant') {
       pendingAnnotations = []
-      pendingReasoning = undefined
-      pendingReasoningTime = undefined
+      pendingReasoning = null
+      pendingReasoningTime = null
     }
 
     return chatMessages

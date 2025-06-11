@@ -13,12 +13,7 @@ interface ToolSectionProps {
   addToolResult?: (params: { toolCallId: string; result: any }) => void
 }
 
-export function ToolSection({
-  tool,
-  isOpen,
-  onOpenChange,
-  addToolResult
-}: ToolSectionProps) {
+export function ToolSection({ tool, addToolResult }: ToolSectionProps) {
   // Special handling for ask_question tool
   if (tool.toolName === 'ask_question') {
     // When waiting for user input
@@ -26,7 +21,7 @@ export function ToolSection({
       return (
         <QuestionConfirmation
           toolInvocation={tool}
-          onConfirm={(toolCallId, approved, response) => {
+          onConfirmAction={(toolCallId, approved, response) => {
             addToolResult({
               toolCallId,
               result: approved
@@ -48,7 +43,7 @@ export function ToolSection({
         <QuestionConfirmation
           toolInvocation={tool}
           isCompleted={true}
-          onConfirm={() => {}} // Not used in result display mode
+          onConfirmAction={() => {}} // Not used in result display mode
         />
       )
     }
@@ -56,28 +51,14 @@ export function ToolSection({
 
   switch (tool.toolName) {
     case 'search':
-      return (
-        <SearchSection
-          tool={tool}
-          isOpen={isOpen}
-          onOpenChange={onOpenChange}
-        />
-      )
+      return <SearchSection tool={tool} isOpen={false} onOpenChange={o => !o} />
     case 'videoSearch':
       return (
-        <VideoSearchSection
-          tool={tool}
-          isOpen={isOpen}
-          onOpenChange={onOpenChange}
-        />
+        <VideoSearchSection tool={tool} isOpen={false} onOpenChange={o => !o} />
       )
     case 'retrieve':
       return (
-        <RetrieveSection
-          tool={tool}
-          isOpen={isOpen}
-          onOpenChange={onOpenChange}
-        />
+        <RetrieveSection tool={tool} isOpen={false} onOpenChange={o => !o} />
       )
     default:
       return null

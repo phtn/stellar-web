@@ -7,22 +7,22 @@ import {
   SidebarRail,
   SidebarTrigger
 } from '@/components/ui/sidebar'
-import { useGoogleOneTap } from '@/hooks/useGoogleOneTap'
+// import { useGoogleOneTap } from '@/hooks/useGoogleOneTap'
 import { Icon, IconName } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
-import { Suspense, useCallback, useState } from 'react'
+import { Suspense } from 'react'
 import { ChatHistorySection } from './sidebar/chat-history-section'
 import { ChatHistorySkeleton } from './sidebar/chat-history-skeleton'
 import { ReactNode } from 'react-markdown/lib/react-markdown'
 
 export default function AppSidebar() {
-  const [showOneTap, setShowOneTap] = useState(false)
-  useGoogleOneTap(undefined, undefined, showOneTap)
+  // const [showOneTap, setShowOneTap] = useState(false)
+  // useGoogleOneTap(undefined, undefined, showOneTap)
 
-  const handleOneTap = useCallback(() => {
-    setShowOneTap(true)
-  }, [])
+  // const handleOneTap = useCallback(() => {
+  //   setShowOneTap(true)
+  // }, [])
 
   return (
     <Sidebar side="left" variant="sidebar" collapsible="offcanvas">
@@ -37,9 +37,9 @@ export default function AppSidebar() {
             <ChatHistorySection />
           </Suspense>
         </div>
-        <Footer>
+        {/* <Footer>
           <UserProfile signFn={handleOneTap} />
-        </Footer>
+        </Footer> */}
       </SidebarContent>
       <SidebarRail />
     </Sidebar>
