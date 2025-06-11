@@ -1,26 +1,48 @@
 'use client'
 
 import { SpeechToTextService } from '@/services/stt'
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 type RecordingMethod = 'browser' | 'manual'
 
+interface UseVoiceRecorderOptions {
+  setInputAction: (fn: (prev: string) => string) => void
+  recordingMethod?: RecordingMethod
+  lang?: string
+}
+
 /**
  * Custom hook to manage browser/manual voice recording and STT logic.
- * @param setInputAction - Function to update the chat input
  */
 export function useVoiceRecorder({
-  setInputAction
-}: {
-  setInputAction: (fn: (prev: string) => string) => void
-}) {
+  setInputAction,
+  recordingMethod = 'browser',
+  lang = 'en-US'
+}: UseVoiceRecorderOptions) {
   const [isRecording, setIsRecording] = useState<boolean>(false)
   const [isProcessingAudio, setIsProcessingAudio] = useState<boolean>(false)
-  const [recordingMethod] = useState<RecordingMethod>('browser')
   const sttServiceRef = useRef<SpeechToTextService | null>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
   const streamRef = useRef<MediaStream | null>(null)
+
+  // Check if browser speech recognition is supported
+  const isBrowserSpeechSupported = useCallback(() => {
+    return typeof window !== 'undefined' &&
+      (window.SpeechRecognition || window.webkitSpeechRecognition)
+  }, [])
+
+  // Cleanup function for media resources
+  const cleanupMediaResources = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track: MediaStreamTrack) => track.stop())
+      streamRef.current = null
+    }
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current = null
+    }
+    audioChunksRef.current = []
+  }, [])
 
   // Browser Speech Recognition
   const startBrowserRecording = useCallback(() => {
@@ -33,9 +55,11 @@ export function useVoiceRecorder({
   const stopBrowserRecording = useCallback(() => {
     if (sttServiceRef.current && isRecording) {
       sttServiceRef.current.stop()
+      setIsRecording(false)
     }
   }, [isRecording])
 
+  // Process audio file with error handling
   const processAudioFile = useCallback(
     async (audioBlob: Blob) => {
       setIsProcessingAudio(true)
@@ -46,6 +70,11 @@ export function useVoiceRecorder({
           method: 'POST',
           body: formData
         })
+        
+        if (!response.ok) {
+          throw new Error(`STT API error: ${response.status}`)
+        }
+        
         const result = await response.json()
         if (result.success && result.text) {
           setInputAction(prev => prev + result.text)
@@ -61,35 +90,41 @@ export function useVoiceRecorder({
     [setInputAction]
   )
 
-  // Manual recording
+  // Manual recording with improved error handling
   const startManualRecording = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       streamRef.current = stream
+      
       const mediaRecorder = new MediaRecorder(stream)
       mediaRecorderRef.current = mediaRecorder
       audioChunksRef.current = []
-      mediaRecorder.addEventListener('dataavailable', event => {
+      
+      // Event handlers
+      const handleDataAvailable = (event: BlobEvent) => {
         if (event.data.size > 0) {
           audioChunksRef.current.push(event.data)
         }
-      })
-      mediaRecorder.addEventListener('stop', async () => {
+      }
+      
+      const handleStop = async () => {
         const audioBlob = new Blob(audioChunksRef.current, {
           type: 'audio/wav'
         })
         await processAudioFile(audioBlob)
-        if (streamRef.current) {
-          streamRef.current.getTracks().forEach(track => track.stop())
-          streamRef.current = null
-        }
-      })
+        cleanupMediaResources()
+      }
+      
+      mediaRecorder.addEventListener('dataavailable', handleDataAvailable)
+      mediaRecorder.addEventListener('stop', handleStop)
+      
       mediaRecorder.start()
       setIsRecording(true)
     } catch (error) {
       console.error('Error accessing microphone:', error)
+      cleanupMediaResources()
     }
-  }, [processAudioFile])
+  }, [processAudioFile, cleanupMediaResources])
 
   const stopManualRecording = useCallback(() => {
     if (mediaRecorderRef.current && isRecording) {
@@ -98,21 +133,19 @@ export function useVoiceRecorder({
     }
   }, [isRecording])
 
-  // Process audio file (STT)
   // Toggle recording
   const handleRecordingToggle = useCallback(() => {
-    const isBrowserSpeechSupported =
-      typeof window !== 'undefined' &&
-      (window.SpeechRecognition || window.webkitSpeechRecognition)
-    if (recordingMethod === 'browser' && isBrowserSpeechSupported) {
-      if (isRecording) {
+    const useBrowserRecording = recordingMethod === 'browser' && isBrowserSpeechSupported()
+    
+    if (isRecording) {
+      if (useBrowserRecording) {
         stopBrowserRecording()
       } else {
-        startBrowserRecording()
+        stopManualRecording()
       }
     } else {
-      if (isRecording) {
-        stopManualRecording()
+      if (useBrowserRecording) {
+        startBrowserRecording()
       } else {
         startManualRecording()
       }
@@ -120,6 +153,7 @@ export function useVoiceRecorder({
   }, [
     isRecording,
     recordingMethod,
+    isBrowserSpeechSupported,
     startBrowserRecording,
     stopBrowserRecording,
     startManualRecording,
@@ -127,13 +161,10 @@ export function useVoiceRecorder({
   ])
 
   // Initialize browser STT service
-  const initializeSTT = useCallback(() => {
-    if (
-      typeof window !== 'undefined' &&
-      (window.SpeechRecognition || window.webkitSpeechRecognition)
-    ) {
+  useEffect(() => {
+    if (recordingMethod === 'browser' && isBrowserSpeechSupported()) {
       sttServiceRef.current = new SpeechToTextService({
-        lang: 'en-US',
+        lang,
         interimResults: true,
         continuous: false,
         maxDurationMs: 10000,
@@ -142,7 +173,7 @@ export function useVoiceRecorder({
             setInputAction(prev => prev + finalTranscript + '. ')
             setIsRecording(false)
           } else {
-            console.log(interimTranscript)
+            console.log('Interim:', interimTranscript)
           }
         },
         onError: error => {
@@ -154,20 +185,22 @@ export function useVoiceRecorder({
         }
       })
     }
-  }, [setInputAction])
+
+    // Cleanup on unmount
+    return () => {
+      if (sttServiceRef.current) {
+        sttServiceRef.current.stop()
+        sttServiceRef.current = null
+      }
+      cleanupMediaResources()
+    }
+  }, [recordingMethod, lang, setInputAction, isBrowserSpeechSupported, cleanupMediaResources])
 
   return {
     isRecording,
     isProcessingAudio,
-    startRecording:
-      recordingMethod === 'browser'
-        ? startBrowserRecording
-        : startManualRecording,
-    stopRecording:
-      recordingMethod === 'browser'
-        ? stopBrowserRecording
-        : stopManualRecording,
     handleRecordingToggle,
-    initializeSTT
+    startRecording: recordingMethod === 'browser' ? startBrowserRecording : startManualRecording,
+    stopRecording: recordingMethod === 'browser' ? stopBrowserRecording : stopManualRecording
   }
 }

@@ -92,6 +92,15 @@ export const MessageCtxProvider = ({ children, messages }: MessageCtxProps) => {
 
   const lastUserIndex = useMemo(() => getLastUserIndex(messages), [messages])
 
+  // Create a map of message IDs to their indices for efficient lookup
+  const messageIdToIndex = useMemo(() => {
+    const map = new Map<string, number>()
+    messages.forEach((msg, index) => {
+      map.set(msg.id, index)
+    })
+    return map
+  }, [messages])
+
   // Memoize sections to prevent unnecessary recalculations
   const memoizedSections = useMemo(() => {
     if (messages) {
@@ -118,14 +127,35 @@ export const MessageCtxProvider = ({ children, messages }: MessageCtxProps) => {
 
   const getIsOpen = useCallback(
     (id: string) => {
+      // Check explicit open state first
+      if (openStates[id] !== undefined) {
+        return openStates[id]
+      }
+
+      // For tool calls, check if they have an explicit state
       if (id.includes('call')) {
         return openStates[id] ?? true
       }
+
+      // Handle related questions or other special IDs
       const baseId = id.endsWith('-related') ? id.slice(0, -8) : id
-      // Use lastUserIndex instead of searching messages array
-      return openStates[id] ?? true
+
+      // Check if we have an explicit state for the base ID
+      if (openStates[baseId] !== undefined) {
+        return openStates[baseId]
+      }
+
+      // Use message position to determine default open state
+      const messageIndex = messageIdToIndex.get(baseId)
+      if (messageIndex !== undefined && lastUserIndex !== -1) {
+        // Messages at or after the last user message should be open by default
+        return messageIndex >= lastUserIndex
+      }
+
+      // Default to true if we can't determine the position
+      return true
     },
-    [openStates]
+    [openStates, messageIdToIndex, lastUserIndex]
   )
 
   const selectQuery = useCallback(
