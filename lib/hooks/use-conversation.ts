@@ -41,6 +41,7 @@ export function useConversation({ id }: UseConversation) {
   const [convId, setConvId] = useState<string | null>(null)
   const [conversations, setConversations] = useState<IConversation[]>([])
   const [hasStarted, setHasStarted] = useState(false)
+  const [justCreated, setJustCreated] = useState(false)
 
   const initialLoadRef = useRef(false)
   const convIdRef = useRef<string | null>(null)
@@ -56,6 +57,7 @@ export function useConversation({ id }: UseConversation) {
       const convo = await fbCreateConversation(params)
       setConvId(convo)
       setHasStarted(true)
+      setJustCreated(true)
       return convo
     },
     []
@@ -76,7 +78,8 @@ export function useConversation({ id }: UseConversation) {
   // Ensure conversation doc has all required fields
   useEffect(() => {
     async function ensureConversationFields() {
-      if (id && convId === id) {
+      // Skip if conversation was just created (it already has all fields)
+      if (id && convId === id && !justCreated) {
         // logFirestoreArgs('ensureConversationFields', 'conversations', id)
         const convo = await getConversation(id)
         let needsUpdate = false
@@ -105,7 +108,7 @@ export function useConversation({ id }: UseConversation) {
       }
     }
     ensureConversationFields()
-  }, [id, convId])
+  }, [id, convId, justCreated])
 
   // Update handleFirstMessage to use hook
   const handleFirstMessage = useCallback(
@@ -168,10 +171,8 @@ export function useConversation({ id }: UseConversation) {
     setConversations(recents)
   }, [])
 
-  // Optionally, fetch recent conversations on mount or when needed
-  useEffect(() => {
-    fetchRecentConversations()
-  }, [fetchRecentConversations])
+  // Only fetch when needed, not on every mount
+  // Removed automatic fetch on mount
 
   // Set conversationId on mount if id is present
   useEffect(() => {
@@ -190,6 +191,7 @@ export function useConversation({ id }: UseConversation) {
     initialLoadRef,
     createConversation,
     handleFirstMessage,
-    handleSubsequentMessage
+    handleSubsequentMessage,
+    fetchRecentConversations
   }
 }
