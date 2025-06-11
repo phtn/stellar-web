@@ -1,4 +1,5 @@
 import { getVoice } from '@/app/actions'
+import { excludeKeys } from '@/ctx/chat/helpers'
 import {
   addMessage as fbAddMessage,
   createConversation as fbCreateConversation,
@@ -19,7 +20,6 @@ import {
   CreateConversationParams,
   IConversation
 } from '../firebase/types'
-import { excludeKeys } from '@/ctx/chat/helpers'
 
 export type WithId = { id: string }
 export interface SavedMessage extends WithId {
@@ -43,6 +43,12 @@ export function useConversation({ id }: UseConversation) {
   const [hasStarted, setHasStarted] = useState(false)
 
   const initialLoadRef = useRef(false)
+  const convIdRef = useRef<string | null>(null)
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    convIdRef.current = convId
+  }, [convId])
 
   // Create a new conversation if needed
   const createConversation = useCallback(
@@ -107,22 +113,18 @@ export function useConversation({ id }: UseConversation) {
       // Always call createConversation for the first user message
       const userId = 'demo-user'
       const assistant = (await getVoice()) ?? 'assistant'
-      const params = {
-        convId,
-        message
-      } as AddMessageParams
 
       console.log('FIRST', excludeKeys(message, 'experimental_attachments'))
 
       try {
-        const convId = await createConversation({
+        const newConvId = await createConversation({
           userId,
           assistant,
           chatId: id,
           title: message.content.slice(0, 32) ?? 'Conversation'
         })
-        setConvId(convId)
-        await addMessage({ ...params, convId })
+        setConvId(newConvId)
+        await addMessage({ convId: newConvId, message })
         setHasStarted(true)
       } catch (err) {
         console.error('[handleFirstMessage] createConversation error', err)
@@ -133,13 +135,26 @@ export function useConversation({ id }: UseConversation) {
 
   const handleSubsequentMessage = useCallback(
     async (message: Message) => {
+      const currentConvId = convIdRef.current
+      if (!currentConvId) {
+        console.warn('[handleSubsequentMessage] No conversation ID available')
+        return
+      }
+      
       const params = {
-        convId,
+        convId: currentConvId,
         message
       } as AddMessageParams
-      convId && (await addMessage({ ...params, convId }))
+      
+      console.log('[handleSubsequentMessage] Adding message:', {
+        convId: currentConvId,
+        messageId: message.id,
+        role: message.role
+      })
+      
+      await addMessage(params)
     },
-    [addMessage, convId]
+    [addMessage]
   )
 
   // Only load Firestore messages on initial conversation load and if chat is empty
