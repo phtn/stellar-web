@@ -157,6 +157,17 @@ export const MessageCtxProvider = ({ children, messages }: MessageCtxProps) => {
 
   const getIsOpen = useCallback(
     (id: string) => {
+
+      // Extract base ID for all types of IDs
+      let baseId = id
+      if (id.endsWith('-related')) {
+        baseId = id.slice(0, -8)
+      } else if (id.includes('call')) {
+        // For call IDs, try to extract the associated message ID
+        // If it's a standalone call ID, we'll still try to find it in messages
+        baseId = id
+      }
+
       // Check explicit open state first
       if (openStates[id] !== undefined) {
         return openStates[id]
@@ -184,6 +195,7 @@ export const MessageCtxProvider = ({ children, messages }: MessageCtxProps) => {
 
       // Default to true if we can't determine the position
       return true
+
     },
     [openStates, messageIdToIndex, lastUserIndex]
   )
