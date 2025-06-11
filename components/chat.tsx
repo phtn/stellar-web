@@ -116,15 +116,9 @@ export function Chat({ id, initialMessages, query, models }: IChat) {
   // Use the new voice recorder hook
   const {
     isRecording,
-    initializeSTT,
     isProcessingAudio,
     handleRecordingToggle
   } = useVoiceRecorder({ setInputAction: setInput })
-
-  // Initialize browser STT service on mount
-  useEffect(() => {
-    initializeSTT()
-  }, [initializeSTT])
 
   // Replace scroll-to-section effect with:
   useEffect(() => {
@@ -179,11 +173,11 @@ export function Chat({ id, initialMessages, query, models }: IChat) {
     messageId: string,
     options?: ChatRequestOptions
   ) => {
-    const messageIndex = messages.findIndex(m => m.id === messageId)
+    const messageIndex = messages.findIndex((m: Message) => m.id === messageId)
     if (messageIndex !== -1) {
       const userMessageIndex = messages
         .slice(0, messageIndex)
-        .findLastIndex(m => m.role === 'user')
+        .findLastIndex((m: Message) => m.role === 'user')
       if (userMessageIndex !== -1) {
         const trimmedMessages = messages.slice(0, userMessageIndex + 1)
         setMessages(trimmedMessages)

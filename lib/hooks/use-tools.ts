@@ -1,4 +1,4 @@
-import { JSONValue } from 'ai'
+import { JSONValue, ToolInvocation } from 'ai'
 import { useCallback, useMemo } from 'react'
 
 interface ToolCallData {
@@ -10,14 +10,6 @@ interface ToolCallData {
     args: string
     result?: string
   }
-}
-
-interface ParsedToolData {
-  state: 'call' | 'result'
-  toolCallId: string
-  toolName: string
-  args?: any
-  result?: any
 }
 
 export const useTools = (data: JSONValue[] | undefined) => {
@@ -37,19 +29,22 @@ export const useTools = (data: JSONValue[] | undefined) => {
     if (!data || !Array.isArray(data)) return []
     
     return data
-      .filter((item): item is ToolCallData => 
+      .filter((item) => 
         typeof item === 'object' && 
         item !== null && 
         'type' in item && 
-        item.type === 'tool_call'
+        (item as any).type === 'tool_call'
       )
-      .map((item): ParsedToolData => ({
-        state: item.data.state,
-        toolCallId: item.data.toolCallId,
-        toolName: item.data.toolName,
-        args: parseJSON(item.data.args),
-        result: parseJSON(item.data.result)
-      }))
+      .map((item): ToolInvocation => {
+        const toolData = item as unknown as ToolCallData
+        return {
+          state: toolData.data.state,
+          toolCallId: toolData.data.toolCallId,
+          toolName: toolData.data.toolName,
+          args: parseJSON(toolData.data.args),
+          result: parseJSON(toolData.data.result)
+        } as ToolInvocation
+      })
   }, [data, parseJSON])
 
   // Get the last tool call
@@ -59,17 +54,17 @@ export const useTools = (data: JSONValue[] | undefined) => {
 
   // Get pending tool calls (calls without results)
   const pendingToolCalls = useMemo(() => {
-    return toolCalls.filter((tool: ParsedToolData) => tool.state === 'call' && !tool.result)
+    return toolCalls.filter((tool: ToolInvocation) => tool.state === 'call')
   }, [toolCalls])
 
   // Get completed tool calls
   const completedToolCalls = useMemo(() => {
-    return toolCalls.filter((tool: ParsedToolData) => tool.state === 'result' || tool.result !== undefined)
+    return toolCalls.filter((tool: ToolInvocation) => tool.state === 'result')
   }, [toolCalls])
 
   // Find tool by ID
   const findToolById = useCallback((toolCallId: string) => {
-    return toolCalls.find((tool: ParsedToolData) => tool.toolCallId === toolCallId)
+    return toolCalls.find((tool: ToolInvocation) => tool.toolCallId === toolCallId)
   }, [toolCalls])
 
   return {

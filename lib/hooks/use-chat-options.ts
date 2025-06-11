@@ -65,7 +65,6 @@ export const useChatOptions = ({
     body,
     initialMessages,
     onFinish,
-    onError,
-    experimental_throttle: 100
+    onError
   }
 }
