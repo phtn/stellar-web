@@ -1,5 +1,4 @@
 import { getVoice } from '@/app/actions'
-import { excludeKeys } from '@/ctx/chat/helpers'
 import {
   addMessage as fbAddMessage,
   createConversation as fbCreateConversation,
@@ -14,7 +13,7 @@ import {
   serverTimestamp,
   updateDoc
 } from 'firebase/firestore'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   AddMessageParams,
   CreateConversationParams,
@@ -29,15 +28,41 @@ export interface SavedMessage extends WithId {
   role: 'user' | 'assistant'
 }
 
+// Debug logging utility
+const DEBUG_MODE = process.env.NODE_ENV === 'development'
+const logFirestoreArgs = (label: string, ...args: unknown[]): void => {
+  if (DEBUG_MODE) {
+    console.log(`[Firestore Path] ${label}:`, ...args)
+  }
+}
+
 /**
  * Custom hook to manage Firestore conversation logic.
  * Handles conversation creation, loading, and message management.
  */
-interface UseConversation {
+interface UseConversationProps {
   id: string
-  savedMessages?: SavedMessage[]
+  userId?: string
 }
-export function useConversation({ id }: UseConversation) {
+
+interface UseConversationReturn {
+  convId: string | null
+  setConvId: (id: string | null) => void
+  addMessage: (params: AddMessageParams) => Promise<void>
+  hasStarted: boolean
+  conversations: IConversation[]
+  setHasStarted: (started: boolean) => void
+  initialLoadRef: React.MutableRefObject<boolean>
+  createConversation: (params: CreateConversationParams) => Promise<string>
+  handleFirstMessage: (message: Message) => Promise<void>
+  handleSubsequentMessage: (message: Message) => Promise<void>
+  fetchRecentConversations: () => Promise<void>
+}
+
+export function useConversation({ 
+  id, 
+  userId = 'demo-user' 
+}: UseConversationProps): UseConversationReturn {
   const [convId, setConvId] = useState<string | null>(null)
   const [conversations, setConversations] = useState<IConversation[]>([])
   const [hasStarted, setHasStarted] = useState(false)
@@ -53,126 +78,135 @@ export function useConversation({ id }: UseConversation) {
 
   // Create a new conversation if needed
   const createConversation = useCallback(
-    async (params: CreateConversationParams) => {
-      const convo = await fbCreateConversation(params)
-      setConvId(convo)
-      setHasStarted(true)
-      setJustCreated(true)
-      return convo
+    async (params: CreateConversationParams): Promise<string> => {
+      try {
+        const convoId = await fbCreateConversation(params)
+        setConvId(convoId)
+        setHasStarted(true)
+        setJustCreated(true)
+        return convoId
+      } catch (error) {
+        console.error('[createConversation] Error:', error)
+        throw error
+      }
     },
     []
   )
 
-  // Add a message to Firestore
+  // Add a message to Firestore with error handling
   const addMessage = useCallback(
-    async (params: AddMessageParams) => await fbAddMessage(params),
+    async (params: AddMessageParams): Promise<void> => {
+      try {
+        await fbAddMessage(params)
+      } catch (error) {
+        console.error('[addMessage] Error:', error)
+        throw error
+      }
+    },
     []
   )
 
-  // Add a helper to log Firestore path arguments
-  function logFirestoreArgs(label: string, ...args: unknown[]): unknown[] {
-    console.log(`[Firestore Path] ${label}:`, ...args)
-    return args
-  }
+  // Default conversation data for missing fields
+  const defaultConversationData = useMemo<Partial<IConversation>>(() => ({
+    title: 'Conversation',
+    assistant: 'Assistant',
+    createdAt: serverTimestamp(),
+    userId
+  }), [userId])
 
   // Ensure conversation doc has all required fields
   useEffect(() => {
     async function ensureConversationFields() {
-      // Skip if conversation was just created (it already has all fields)
-      if (id && convId === id && !justCreated) {
-        // logFirestoreArgs('ensureConversationFields', 'conversations', id)
+      // Skip if conversation was just created or IDs don't match
+      if (!id || convId !== id || justCreated) return
+
+      try {
         const convo = await getConversation(id)
+        if (!convo) return // doc doesn't exist
+
+        const updateData: Partial<IConversation> = {}
         let needsUpdate = false
-        const updateData = {} as IConversation
-        if (!convo) return // doc doesn't exist, don't update
-        if (!convo.title) {
-          updateData.title = 'Conversation'
-          needsUpdate = true
-        }
-        if (!convo.assistant) {
-          updateData.assistant = 'Assistant'
-          needsUpdate = true
-        }
-        if (!convo.createdAt) {
-          updateData.createdAt = serverTimestamp()
-          needsUpdate = true
-        }
-        if (!convo.userId) {
-          updateData.userId = 'demo-user'
-          needsUpdate = true
-        }
+
+        // Check each required field
+        Object.entries(defaultConversationData).forEach(([key, value]) => {
+          if (!convo[key as keyof IConversation]) {
+            updateData[key as keyof IConversation] = value as any
+            needsUpdate = true
+          }
+        })
+
         if (needsUpdate) {
           logFirestoreArgs('updateDoc', 'conversations', id)
-          await updateDoc(doc(db, 'conversations', id), { ...updateData })
+          await updateDoc(doc(db, 'conversations', id), updateData)
         }
+      } catch (error) {
+        console.error('[ensureConversationFields] Error:', error)
       }
     }
+
     ensureConversationFields()
-  }, [id, convId, justCreated])
+  }, [id, convId, justCreated, defaultConversationData])
 
   // Update handleFirstMessage to use hook
   const handleFirstMessage = useCallback(
-    async (message: Message) => {
-      // Always call createConversation for the first user message
-      const userId = 'demo-user'
-      const assistant = (await getVoice()) ?? 'assistant'
-
-      console.log('FIRST', excludeKeys(message, 'experimental_attachments'))
-
+    async (message: Message): Promise<void> => {
       try {
+        const assistant = (await getVoice()) ?? 'assistant'
+        
+        if (DEBUG_MODE) {
+          console.log('[handleFirstMessage] Creating conversation for:', {
+            messageId: message.id,
+            role: message.role,
+            contentPreview: message.content.slice(0, 50)
+          })
+        }
+
         const newConvId = await createConversation({
           userId,
           assistant,
           chatId: id,
-          title: message.content.slice(0, 32) ?? 'Conversation'
+          title: message.content.slice(0, 32) || 'Conversation'
         })
-        setConvId(newConvId)
+
         await addMessage({ convId: newConvId, message })
-        setHasStarted(true)
-      } catch (err) {
-        console.error('[handleFirstMessage] createConversation error', err)
+      } catch (error) {
+        console.error('[handleFirstMessage] Error:', error)
+        throw error
       }
     },
-    [id, addMessage, createConversation, setConvId, setHasStarted, convId]
+    [id, userId, addMessage, createConversation]
   )
 
   const handleSubsequentMessage = useCallback(
-    async (message: Message) => {
+    async (message: Message): Promise<void> => {
       const currentConvId = convIdRef.current
       if (!currentConvId) {
         console.warn('[handleSubsequentMessage] No conversation ID available')
         return
       }
       
-      const params = {
-        convId: currentConvId,
-        message
-      } as AddMessageParams
+      if (DEBUG_MODE) {
+        console.log('[handleSubsequentMessage] Adding message:', {
+          convId: currentConvId,
+          messageId: message.id,
+          role: message.role
+        })
+      }
       
-      console.log('[handleSubsequentMessage] Adding message:', {
-        convId: currentConvId,
-        messageId: message.id,
-        role: message.role
-      })
-      
-      await addMessage(params)
+      await addMessage({ convId: currentConvId, message })
     },
     [addMessage]
   )
 
-  // Only load Firestore messages on initial conversation load and if chat is empty
-
-  // Fetch 10 recent conversations for context
-  const fetchRecentConversations = useCallback(async () => {
-    // TODO: Replace with actual user id from auth
-    const userId = 'demo-user'
-    const recents = await getRecentConversationsForUser(userId, 10)
-    // Use recentConvos as needed for context
-    setConversations(recents)
-  }, [])
-
-  // Only fetch when needed, not on every mount
-  // Removed automatic fetch on mount
+  // Fetch recent conversations for context
+  const fetchRecentConversations = useCallback(async (): Promise<void> => {
+    try {
+      const recents = await getRecentConversationsForUser(userId, 10)
+      setConversations(recents)
+    } catch (error) {
+      console.error('[fetchRecentConversations] Error:', error)
+    }
+  }, [userId])
 
   // Set conversationId on mount if id is present
   useEffect(() => {

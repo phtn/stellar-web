@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/dialog'
 import { SearchResultImage } from '@/lib/types'
 import { PlusCircle } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 
 interface SearchResultsImageSectionProps {
   images: SearchResultImage[]
@@ -29,25 +29,26 @@ interface SearchResultsImageSectionProps {
 
 export const SearchResultsImageSection: React.FC<
   SearchResultsImageSectionProps
-> = ({ images, query, displayMode = 'preview' }) => {
+> = memo(({ images, query, displayMode = 'preview' }) => {
   const [api, setApi] = useState<CarouselApi>()
   const [current, setCurrent] = useState(0)
   const [count, setCount] = useState(0)
   const [selectedIndex, setSelectedIndex] = useState(0)
 
-  // Calculate convertedImages first, before any hooks that might depend on it or early returns
-  let convertedImages: { url: string; description: string }[] = []
-  if (images && images.length > 0) {
+  // Memoize converted images calculation
+  const convertedImages = useMemo(() => {
+    if (!images || images.length === 0) return []
+
     // Check images array before accessing its elements
     if (typeof images[0] === 'string') {
-      convertedImages = (images as string[]).map(image => ({
+      return (images as string[]).map(image => ({
         url: image,
         description: ''
       }))
     } else {
-      convertedImages = images as { url: string; description: string }[]
+      return images as { url: string; description: string }[]
     }
-  }
+  }, [images])
 
   // Update the current and count state when the carousel api is available
   useEffect(() => {
@@ -88,6 +89,30 @@ export const SearchResultsImageSection: React.FC<
     // Add convertedImages.length as dep: scroll might need adjustment if images load async
   }, [api, selectedIndex, convertedImages.length])
 
+  // Memoize corner class calculation
+  const getCornerClasses = useCallback((actualIndex: number, isFullMode: boolean) => {
+    if (!isFullMode) return 'rounded-lg'
+
+    switch (actualIndex) {
+      case 0: return 'rounded-tl-lg' // Top-left
+      case 1: return 'rounded-tr-lg' // Top-right
+      case 2: return 'rounded-bl-lg' // Bottom-left
+      case 4: return 'rounded-br-lg' // Bottom-right
+      default: return '' // No rounding for middle positions
+    }
+  }, [])
+
+  // Memoize carousel options
+  const carouselOpts = useMemo(() => ({
+    startIndex: selectedIndex,
+    loop: convertedImages.length > 1
+  }), [selectedIndex, convertedImages.length])
+
+  // Handle image click
+  const handleImageClick = useCallback((index: number) => {
+    setSelectedIndex(index)
+  }, [])
+
   // Early return AFTER all hooks if there are no images to display
   if (convertedImages.length === 0) {
     return <div className="text-muted-foreground">No images found</div>
@@ -102,26 +127,14 @@ export const SearchResultsImageSection: React.FC<
     <div className={gridClasses}>
       {imageSubset.map((image, index) => {
         const actualIndex = startIndex + index
-        // Determine corner rounding based on index in full mode 2x3 layout
-        let cornerClasses = '' // Default to no rounding
-        if (isFullMode) {
-          if (actualIndex === 0) cornerClasses = 'rounded-tl-lg' // Top-left
-          else if (actualIndex === 1)
-            cornerClasses = 'rounded-tr-lg' // Top-right
-          else if (actualIndex === 2)
-            cornerClasses = 'rounded-bl-lg' // Bottom-left
-          // Index 3 (bottom-middle) gets no rounding
-          else if (actualIndex === 4) cornerClasses = 'rounded-br-lg' // Bottom-right
-        } else {
-          cornerClasses = 'rounded-lg' // Default for preview mode
-        }
+        const cornerClasses = getCornerClasses(actualIndex, isFullMode)
 
         return (
           <Dialog key={actualIndex}>
             <DialogTrigger asChild>
               <div
                 className="aspect-video cursor-pointer relative"
-                onClick={() => setSelectedIndex(actualIndex)}
+                onClick={() => handleImageClick(actualIndex)}
               >
                 <div className="flex-1 h-full">
                   <div className="h-full w-full">
@@ -132,8 +145,8 @@ export const SearchResultsImageSection: React.FC<
                         // Apply specific or default rounding
                         className={`h-full w-full object-cover shadow ${cornerClasses}`}
                         onError={e =>
-                          (e.currentTarget.src =
-                            '/images/placeholder-image.png')
+                        (e.currentTarget.src =
+                          '/images/placeholder-image.png')
                         }
                       />
                     ) : (
@@ -160,10 +173,7 @@ export const SearchResultsImageSection: React.FC<
               <div className="py-4">
                 <Carousel
                   setApi={setApi}
-                  opts={{
-                    startIndex: selectedIndex,
-                    loop: convertedImages.length > 1
-                  }}
+                  opts={carouselOpts}
                   className="w-full bg-muted max-h-[60vh]"
                 >
                   <CarouselContent>
@@ -175,8 +185,8 @@ export const SearchResultsImageSection: React.FC<
                             alt={`Image ${idx + 1}`}
                             className="h-auto w-full object-contain max-h-[60vh]"
                             onError={e =>
-                              (e.currentTarget.src =
-                                '/images/placeholder-image.png')
+                            (e.currentTarget.src =
+                              '/images/placeholder-image.png')
                             }
                           />
                         </div>
@@ -239,4 +249,6 @@ export const SearchResultsImageSection: React.FC<
     0,
     false
   )
-}
+})
+
+SearchResultsImageSection.displayName = 'SearchResultsImageSection'

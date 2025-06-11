@@ -63,8 +63,8 @@ export const MessageCtxProvider = ({ children, messages }: MessageCtxProps) => {
     (toolCallId = 'manual-tool-call') => {
       // Open manual tool call when the last section is a user message
       const lastSection = sections[sections.length - 1]
-      if (lastSection.userMessage.role === 'user') {
-        setOpenStates({ [toolCallId]: true })
+      if (lastSection?.userMessage.role === 'user') {
+        setOpenStates(prev => ({ ...prev, [toolCallId]: true }))
       }
     },
     [sections]
@@ -83,19 +83,58 @@ export const MessageCtxProvider = ({ children, messages }: MessageCtxProps) => {
 
   const loadMessages = useCallback(async (convId: string) => {
     const msgs = await getMessages(convId)
-    // console.log('[MessageCtx] getMessages result:', msgs)
     const x = excludeAudioUrl(msgs) as Message[]
     setAllMessages(x)
-    // console.log('[MessageCtx] after excludeKeys + convertToUIMessages:', uiMsgs)
     initialLoadRef.current = true
   }, [])
 
   const lastUserIndex = useMemo(() => getLastUserIndex(messages), [messages])
 
+
+
+  // Optimize sections creation with proper dependency tracking
+  useEffect(() => {
+    if (messages && messages.length > 0) {
+      const newSections = createSections(messages)
+      setSections(prevSections => {
+        // Only update if sections actually changed
+        if (prevSections.length !== newSections.length) {
+          console.log('[MessageCtx] sections:', newSections)
+          return newSections
+        }
+
+        // Check if any section content changed
+        const hasChanged = newSections.some((newSection, index) => {
+          const oldSection = prevSections[index]
+          return !oldSection ||
+            oldSection.id !== newSection.id ||
+            oldSection.userMessage.id !== newSection.userMessage.id ||
+            oldSection.assistantMessages.length !== newSection.assistantMessages.length
+        })
+
+        if (hasChanged) {
+          console.log('[MessageCtx] sections:', newSections)
+          return newSections
+        }
+
+        return prevSections
+      })
+
+  // Create a map of message IDs to their indices for efficient lookup
+  const messageIdToIndex = useMemo(() => {
+    const map = new Map<string, number>()
+    messages.forEach((msg, index) => {
+      map.set(msg.id, index)
+    })
+    return map
+  }, [messages])
+
+
   // Memoize sections to prevent unnecessary recalculations
   const memoizedSections = useMemo(() => {
     if (messages) {
       return createSections(messages)
+
     }
     return []
   }, [messages])
@@ -118,6 +157,7 @@ export const MessageCtxProvider = ({ children, messages }: MessageCtxProps) => {
 
   const getIsOpen = useCallback(
     (id: string) => {
+
       // Extract base ID for all types of IDs
       let baseId = id
       if (id.endsWith('-related')) {
@@ -127,8 +167,37 @@ export const MessageCtxProvider = ({ children, messages }: MessageCtxProps) => {
         // If it's a standalone call ID, we'll still try to find it in messages
         baseId = id
       }
+
+      // Check explicit open state first
+      if (openStates[id] !== undefined) {
+        return openStates[id]
+      }
+
+      // For tool calls, check if they have an explicit state
+      if (id.includes('call')) {
+        return openStates[id] ?? true
+      }
+
+      // Handle related questions or other special IDs
+      const baseId = id.endsWith('-related') ? id.slice(0, -8) : id
+
+      // Check if we have an explicit state for the base ID
+      if (openStates[baseId] !== undefined) {
+        return openStates[baseId]
+      }
+
+      // Use message position to determine default open state
+      const messageIndex = messageIdToIndex.get(baseId)
+      if (messageIndex !== undefined && lastUserIndex !== -1) {
+        // Messages at or after the last user message should be open by default
+        return messageIndex >= lastUserIndex
+      }
+
+      // Default to true if we can't determine the position
+      return true
+
     },
-    [openStates]
+    [openStates, messageIdToIndex, lastUserIndex]
   )
 
   const selectQuery = useCallback(
@@ -167,7 +236,6 @@ export const MessageCtxProvider = ({ children, messages }: MessageCtxProps) => {
       storeMessage,
       loadMessages,
       lastUserIndex,
-      initialLoadRef,
       handleOpenChange
     ]
   )
