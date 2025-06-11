@@ -3,7 +3,6 @@
 import { addMessage, getMessages } from '@/lib/firebase/conversations'
 import { AddMessageParams } from '@/lib/firebase/types'
 import { useToggle } from '@/lib/hooks/use-toggle'
-import { convertToUIMessages } from '@/lib/utils'
 import { ChatRequestOptions, CreateMessage, Message } from 'ai'
 import {
   createContext,
@@ -108,16 +107,23 @@ export const MessageCtxProvider = ({ children, messages }: MessageCtxProps) => {
     }))
   }, [])
 
-  const onOpenChange = useCallback((check: boolean) => {}, [])
+  const onOpenChange = useCallback((check: boolean) => { }, [])
 
   const getIsOpen = useCallback(
     (id: string) => {
-      if (id.includes('call')) {
-        return openStates[id] ?? true
+      // Extract base ID for all types of IDs
+      let baseId = id
+      if (id.endsWith('-related')) {
+        baseId = id.slice(0, -8)
+      } else if (id.includes('call')) {
+        // For call IDs, try to extract the associated message ID
+        // If it's a standalone call ID, we'll still try to find it in messages
+        baseId = id
       }
-      const baseId = id.endsWith('-related') ? id.slice(0, -8) : id
+
       const index = messages.findIndex(msg => msg.id === baseId)
-      return openStates[id] ?? index >= lastUserIndex
+      // Use the same logic for all IDs: check position relative to lastUserIndex
+      return openStates[id] ?? (index !== -1 ? index >= lastUserIndex : false)
     },
     [messages, lastUserIndex, openStates]
   )
