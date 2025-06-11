@@ -11,17 +11,29 @@ import {
 } from 'react'
 import { toast } from 'sonner'
 
+// Helper function to check if content is an action or gesture
+const isActionOrGesture = (content: string): boolean => {
+  const trimmed = content.trim()
+  // Matches *action*, /action/, (action), possibly with whitespace
+  return (
+    /^\*.*\*$/.test(trimmed) ||
+    /^\/.*\/$/.test(trimmed) ||
+    /^\(.*\)$/.test(trimmed)
+  )
+}
+
 interface IChatOptions {
   id: string
   messages: Message[] | undefined
   setAssistantAction: Dispatch<SetStateAction<Message | null>>
 }
+
 export const useChatOptions = ({
   id,
   messages,
   setAssistantAction
-}: IChatOptions) => {
-  const [body, setBody] = useState<object>()
+}: IChatOptions): UseChatOptions => {
+  const [body, setBody] = useState<Record<string, string>>({})
 
   useEffect(() => {
     if (id) {
@@ -43,6 +55,7 @@ export const useChatOptions = ({
     },
     [setAssistantAction]
   )
+
   const onError = useCallback((error: Error) => {
     toast.error(`Error in chat: ${error.message}`)
   }, [])
@@ -52,18 +65,6 @@ export const useChatOptions = ({
     body,
     initialMessages,
     onFinish,
-    onError,
-    experimental_throttle: 100
-    // sendExtraMessageFields: false,
-  } as UseChatOptions
-}
-
-function isActionOrGesture(content: string) {
-  const trimmed = content.trim()
-  // Matches *action*, /action/, (action), possibly with whitespace
-  return (
-    /^\*.*\*$/.test(trimmed) ||
-    /^\/.*\/$/.test(trimmed) ||
-    /^\(.*\)$/.test(trimmed)
-  )
+    onError
+  }
 }
