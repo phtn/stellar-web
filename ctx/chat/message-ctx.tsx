@@ -90,6 +90,7 @@ export const MessageCtxProvider = ({ children, messages }: MessageCtxProps) => {
 
   const lastUserIndex = useMemo(() => getLastUserIndex(messages), [messages])
 
+
   // Optimize sections creation with proper dependency tracking
   useEffect(() => {
     if (messages && messages.length > 0) {
@@ -117,11 +118,25 @@ export const MessageCtxProvider = ({ children, messages }: MessageCtxProps) => {
 
         return prevSections
       })
+
+  // Memoize sections to prevent unnecessary recalculations
+  const memoizedSections = useMemo(() => {
+    if (messages) {
+      return createSections(messages)
+
     }
+    return []
   }, [messages])
 
+  useEffect(() => {
+    if (JSON.stringify(sections) !== JSON.stringify(memoizedSections)) {
+      setSections(memoizedSections)
+      console.log('[MessageCtx] sections:', memoizedSections)
+    }
+  }, [memoizedSections, sections])
+
   const handleOpenChange = useCallback((id: string, open: boolean) => {
-    setOpenStates(prev => ({
+    setOpenStates((prev: Record<string, boolean>) => ({
       ...prev,
       [id]: open
     }))
@@ -135,10 +150,10 @@ export const MessageCtxProvider = ({ children, messages }: MessageCtxProps) => {
         return openStates[id] ?? true
       }
       const baseId = id.endsWith('-related') ? id.slice(0, -8) : id
-      const index = messages.findIndex(msg => msg.id === baseId)
-      return openStates[id] ?? index >= lastUserIndex
+      // Use lastUserIndex instead of searching messages array
+      return openStates[id] ?? true
     },
-    [messages, lastUserIndex, openStates]
+    [openStates]
   )
 
   const selectQuery = useCallback(

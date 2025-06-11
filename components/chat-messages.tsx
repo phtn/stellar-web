@@ -41,13 +41,6 @@ export function ChatMessages({
   const { handleOpenChange, on, loadMessages, sections } =
     useContext(MessageCtx)!
 
-  useEffect(() => {
-    if (chatId) loadMessages(chatId)
-  }, [loadMessages, chatId])
-  // useEffect(() => {
-  //   console.log('[ChatMessages] sections:', sections)
-  // }, [sections])
-
   // get last tool data for manual tool call
   const { lastToolData } = useTools(data)
 
