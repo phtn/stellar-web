@@ -3,7 +3,6 @@
 import { addMessage, getMessages } from '@/lib/firebase/conversations'
 import { AddMessageParams } from '@/lib/firebase/types'
 import { useToggle } from '@/lib/hooks/use-toggle'
-import { convertToUIMessages } from '@/lib/utils'
 import { ChatRequestOptions, CreateMessage, Message } from 'ai'
 import {
   createContext,
@@ -92,14 +91,21 @@ export const MessageCtxProvider = ({ children, messages }: MessageCtxProps) => {
   }, [])
 
   const lastUserIndex = useMemo(() => getLastUserIndex(messages), [messages])
-  useEffect(() => {
+
+  // Memoize sections to prevent unnecessary recalculations
+  const memoizedSections = useMemo(() => {
     if (messages) {
-      const s = createSections(messages)
-      setSections(s)
-      console.log('[MessageCtx] sections:', s)
-      // console.log('[MessageCtx] allMessages:', allMessages)
+      return createSections(messages)
     }
+    return []
   }, [messages])
+
+  useEffect(() => {
+    if (JSON.stringify(sections) !== JSON.stringify(memoizedSections)) {
+      setSections(memoizedSections)
+      console.log('[MessageCtx] sections:', memoizedSections)
+    }
+  }, [memoizedSections, sections])
 
   const handleOpenChange = useCallback((id: string, open: boolean) => {
     setOpenStates(prev => ({
@@ -108,7 +114,7 @@ export const MessageCtxProvider = ({ children, messages }: MessageCtxProps) => {
     }))
   }, [])
 
-  const onOpenChange = useCallback((check: boolean) => {}, [])
+  const onOpenChange = useCallback((check: boolean) => { }, [])
 
   const getIsOpen = useCallback(
     (id: string) => {
@@ -116,10 +122,10 @@ export const MessageCtxProvider = ({ children, messages }: MessageCtxProps) => {
         return openStates[id] ?? true
       }
       const baseId = id.endsWith('-related') ? id.slice(0, -8) : id
-      const index = messages.findIndex(msg => msg.id === baseId)
-      return openStates[id] ?? index >= lastUserIndex
+      // Use lastUserIndex instead of searching messages array
+      return openStates[id] ?? true
     },
-    [messages, lastUserIndex, openStates]
+    [openStates]
   )
 
   const selectQuery = useCallback(

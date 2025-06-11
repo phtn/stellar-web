@@ -1,6 +1,6 @@
 'use client'
 
-import { MessageCtx, SetMessage } from '@/ctx/chat/message-ctx'
+import { MessageCtx } from '@/ctx/chat/message-ctx'
 import { useTools } from '@/lib/hooks/use-tools'
 import { cn } from '@/lib/utils'
 import { ChatRequestOptions, JSONValue } from 'ai'
@@ -8,7 +8,6 @@ import { RefObject, useCallback, useContext, useEffect } from 'react'
 import { RenderMessage } from './render-message'
 import { ToolSection } from './tool-section'
 import { Spinner } from './ui/spinner'
-import { ChatSection } from '@/ctx/chat/types'
 
 interface ChatMessagesProps {
   data: JSONValue[] | undefined
@@ -41,13 +40,6 @@ export function ChatMessages({
 
   const { handleOpenChange, on, loadMessages, sections } =
     useContext(MessageCtx)!
-
-  useEffect(() => {
-    if (chatId) loadMessages(chatId)
-  }, [loadMessages, chatId])
-  // useEffect(() => {
-  //   console.log('[ChatMessages] sections:', sections)
-  // }, [sections])
 
   // get last tool data for manual tool call
   const { lastToolData } = useTools(data)

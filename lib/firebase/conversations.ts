@@ -1,4 +1,4 @@
-import { excludeKeys, xKeys } from '@/ctx/chat/helpers'
+import { xKeys } from '@/ctx/chat/helpers'
 import { Message } from 'ai'
 import {
   collection,
@@ -83,7 +83,7 @@ export async function getRecentConversationsForUser(userId: string, n = 10) {
   const ref = collection(db, 'conversations')
   const q = query(
     ref,
-    where(userId, '==', 'userId'),
+    where('userId', '==', userId),
     orderBy('createdAt', 'desc'),
     limit(n)
   )

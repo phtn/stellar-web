@@ -28,8 +28,6 @@ import { toast } from 'sonner'
 import { ChatMessages } from './chat-messages'
 import { ChatPanel } from './chat-panel'
 import { cleanForTTS } from './message'
-import { createSections } from '@/ctx/chat/helpers'
-import { ChatSection } from '@/ctx/chat/types'
 
 interface IChat {
   id: string
@@ -47,19 +45,15 @@ function ChatContextSync({
   messages: Message[]
 }) {
   const { loadMessages } = useContext(MessageCtx)!
+  const loadedRef = useRef(false)
 
-  // LOG: messages from useChat
+  // Load messages only once when component mounts with an id
   useEffect(() => {
-    // console.log('[Chat] useChat messages:', messages)
-  }, [messages])
-
-  // Sync context messages after sending
-  useEffect(() => {
-    if (loadMessages && id && messages.length > 0) {
-      // console.log('[Chat] Calling loadMessages with id:', id)
+    if (loadMessages && id && !loadedRef.current) {
+      loadedRef.current = true
       loadMessages(id)
     }
-  }, [messages, loadMessages, id])
+  }, [id, loadMessages])
 
   return null
 }
@@ -237,7 +231,7 @@ export function Chat({ id, initialMessages, query, models }: IChat) {
 
   useEffect(() => {
     if (convId && assistant) {
-      ;(async () => {
+      ; (async () => {
         await addMessage({ convId, message: assistant })
         await generateSpeech(assistant, convId)
         setAssistantAction(null)
