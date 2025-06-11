@@ -90,8 +90,6 @@ export const MessageCtxProvider = ({ children, messages }: MessageCtxProps) => {
 
   const lastUserIndex = useMemo(() => getLastUserIndex(messages), [messages])
 
-
-
   // Optimize sections creation with proper dependency tracking
   useEffect(() => {
     if (messages && messages.length > 0) {
@@ -106,10 +104,13 @@ export const MessageCtxProvider = ({ children, messages }: MessageCtxProps) => {
         // Check if any section content changed
         const hasChanged = newSections.some((newSection, index) => {
           const oldSection = prevSections[index]
-          return !oldSection ||
+          return (
+            !oldSection ||
             oldSection.id !== newSection.id ||
             oldSection.userMessage.id !== newSection.userMessage.id ||
-            oldSection.assistantMessages.length !== newSection.assistantMessages.length
+            oldSection.assistantMessages.length !==
+              newSection.assistantMessages.length
+          )
         })
 
         if (hasChanged) {
@@ -119,6 +120,8 @@ export const MessageCtxProvider = ({ children, messages }: MessageCtxProps) => {
 
         return prevSections
       })
+    }
+  }, [messages])
 
   // Create a map of message IDs to their indices for efficient lookup
   const messageIdToIndex = useMemo(() => {
@@ -129,12 +132,10 @@ export const MessageCtxProvider = ({ children, messages }: MessageCtxProps) => {
     return map
   }, [messages])
 
-
   // Memoize sections to prevent unnecessary recalculations
   const memoizedSections = useMemo(() => {
     if (messages) {
       return createSections(messages)
-
     }
     return []
   }, [messages])
@@ -153,11 +154,10 @@ export const MessageCtxProvider = ({ children, messages }: MessageCtxProps) => {
     }))
   }, [])
 
-  const onOpenChange = useCallback((check: boolean) => { }, [])
+  const onOpenChange = useCallback((check: boolean) => {}, [])
 
   const getIsOpen = useCallback(
     (id: string) => {
-
       // Extract base ID for all types of IDs
       let baseId = id
       if (id.endsWith('-related')) {
@@ -179,7 +179,7 @@ export const MessageCtxProvider = ({ children, messages }: MessageCtxProps) => {
       }
 
       // Handle related questions or other special IDs
-      const baseId = id.endsWith('-related') ? id.slice(0, -8) : id
+      baseId = id.endsWith('-related') ? id.slice(0, -8) : id
 
       // Check if we have an explicit state for the base ID
       if (openStates[baseId] !== undefined) {
@@ -195,7 +195,6 @@ export const MessageCtxProvider = ({ children, messages }: MessageCtxProps) => {
 
       // Default to true if we can't determine the position
       return true
-
     },
     [openStates, messageIdToIndex, lastUserIndex]
   )

@@ -9,15 +9,16 @@ export function useShallowCompareEffect(
   dependencies: DependencyList
 ) {
   const prevDepsRef = useRef<DependencyList>()
-  
+
   useEffect(() => {
-    const hasDepsChanged = !prevDepsRef.current || 
+    const hasDepsChanged =
+      !prevDepsRef.current ||
       dependencies.length !== prevDepsRef.current.length ||
       dependencies.some((dep, i) => dep !== prevDepsRef.current![i])
-    
+
     if (hasDepsChanged) {
       prevDepsRef.current = dependencies
       return callback()
     }
-  }, dependencies)
+  }, [dependencies, callback])
 }
