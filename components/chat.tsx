@@ -231,7 +231,7 @@ export function Chat({ id, initialMessages, query, models }: IChat) {
 
   useEffect(() => {
     if (convId && assistant) {
-      ; (async () => {
+      (async () => {
         await addMessage({ convId, message: assistant })
         await generateSpeech(assistant, convId)
         setAssistantAction(null)

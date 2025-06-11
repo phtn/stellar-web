@@ -108,7 +108,7 @@ export const MessageCtxProvider = ({ children, messages }: MessageCtxProps) => {
   }, [memoizedSections, sections])
 
   const handleOpenChange = useCallback((id: string, open: boolean) => {
-    setOpenStates(prev => ({
+    setOpenStates((prev: Record<string, boolean>) => ({
       ...prev,
       [id]: open
     }))
