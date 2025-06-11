@@ -63,8 +63,8 @@ export const MessageCtxProvider = ({ children, messages }: MessageCtxProps) => {
     (toolCallId = 'manual-tool-call') => {
       // Open manual tool call when the last section is a user message
       const lastSection = sections[sections.length - 1]
-      if (lastSection.userMessage.role === 'user') {
-        setOpenStates({ [toolCallId]: true })
+      if (lastSection?.userMessage.role === 'user') {
+        setOpenStates(prev => ({ ...prev, [toolCallId]: true }))
       }
     },
     [sections]
@@ -83,14 +83,42 @@ export const MessageCtxProvider = ({ children, messages }: MessageCtxProps) => {
 
   const loadMessages = useCallback(async (convId: string) => {
     const msgs = await getMessages(convId)
-    // console.log('[MessageCtx] getMessages result:', msgs)
     const x = excludeAudioUrl(msgs) as Message[]
     setAllMessages(x)
-    // console.log('[MessageCtx] after excludeKeys + convertToUIMessages:', uiMsgs)
     initialLoadRef.current = true
   }, [])
 
   const lastUserIndex = useMemo(() => getLastUserIndex(messages), [messages])
+
+
+
+  // Optimize sections creation with proper dependency tracking
+  useEffect(() => {
+    if (messages && messages.length > 0) {
+      const newSections = createSections(messages)
+      setSections(prevSections => {
+        // Only update if sections actually changed
+        if (prevSections.length !== newSections.length) {
+          console.log('[MessageCtx] sections:', newSections)
+          return newSections
+        }
+
+        // Check if any section content changed
+        const hasChanged = newSections.some((newSection, index) => {
+          const oldSection = prevSections[index]
+          return !oldSection ||
+            oldSection.id !== newSection.id ||
+            oldSection.userMessage.id !== newSection.userMessage.id ||
+            oldSection.assistantMessages.length !== newSection.assistantMessages.length
+        })
+
+        if (hasChanged) {
+          console.log('[MessageCtx] sections:', newSections)
+          return newSections
+        }
+
+        return prevSections
+      })
 
   // Create a map of message IDs to their indices for efficient lookup
   const messageIdToIndex = useMemo(() => {
@@ -101,10 +129,12 @@ export const MessageCtxProvider = ({ children, messages }: MessageCtxProps) => {
     return map
   }, [messages])
 
+
   // Memoize sections to prevent unnecessary recalculations
   const memoizedSections = useMemo(() => {
     if (messages) {
       return createSections(messages)
+
     }
     return []
   }, [messages])
@@ -194,7 +224,6 @@ export const MessageCtxProvider = ({ children, messages }: MessageCtxProps) => {
       storeMessage,
       loadMessages,
       lastUserIndex,
-      initialLoadRef,
       handleOpenChange
     ]
   )

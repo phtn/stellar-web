@@ -5,13 +5,69 @@ import { Model } from '@/lib/types/models'
 import { cn } from '@/lib/utils'
 import { Message } from 'ai'
 import { ChevronDown } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Textarea from 'react-textarea-autosize'
 import { Babes, ToggleFeature } from './babes'
 import { EmptyScreen } from './empty-screen'
 import { IconBtn } from './icon-btn'
 import { Button } from './ui/button'
-import { set } from 'zod'
+
+// Extract VoiceToggle component
+const VoiceToggle = memo(({ voiceRecording, voiceToggle }: {
+  voiceRecording: boolean
+  voiceToggle: VoidFunction
+}) => (
+  <IconBtn
+    btnProps={{
+      onClick: voiceToggle,
+      disabled: false
+    }}
+    solid={!voiceRecording}
+    iconSize={20}
+    iconStyle={cn(
+      'group-hover:text-sky-600 dark:group-hover:text-sky-400',
+      {
+        'size-5 text-indigo-400 dark:text-indigo-500': voiceRecording
+      }
+    )}
+    withShadow={voiceRecording}
+    icon={voiceRecording ? 'spinners-bars-middle' : 'microphone-noir'}
+  />
+))
+VoiceToggle.displayName = 'VoiceToggle'
+
+// Extract SendMessage component
+const SendMessage = memo(({
+  isLoading,
+  input,
+  isToolInvocationInProgress,
+  stop
+}: {
+  isLoading: boolean
+  input: string
+  isToolInvocationInProgress: boolean
+  stop?: VoidFunction
+}) => (
+  <IconBtn
+    btnProps={{
+      onClick: isLoading ? stop : undefined,
+      disabled:
+        (input.length === 0 && !isLoading) || isToolInvocationInProgress,
+      type: isLoading ? 'button' : 'submit'
+    }}
+    solid={true}
+    iconSize={20}
+    iconStyle={cn('text-teal-300 ', {
+      'text-zinc-800':
+        (input.length === 0 && !isLoading) || isToolInvocationInProgress
+    })}
+    withShadow
+    icon={isLoading ? 'spinners-ring' : 'arrow-up-broken'}
+    shadowStyle="text-stone-950"
+    animated
+  />
+))
+SendMessage.displayName = 'SendMessage'
 
 interface ChatPanelProps {
   input: string
@@ -53,25 +109,19 @@ export function ChatPanel({
   const isFirstRender = useRef(true)
   const [isComposing, setIsComposing] = useState(false) // Composition state
   const [enterDisabled, setEnterDisabled] = useState(false) // Disable Enter after composition ends
-  // const { close: closeArtifact } = useArtifact()
 
-  const handleCompositionStart = () => setIsComposing(true)
+  const handleCompositionStart = useCallback(() => setIsComposing(true), [])
 
-  const handleCompositionEnd = () => {
+  const handleCompositionEnd = useCallback(() => {
     setIsComposing(false)
     setEnterDisabled(true)
     setTimeout(() => {
       setEnterDisabled(false)
     }, 300)
-  }
+  }, [])
 
-  // const handleNewChat = () => {
-  //   setMessages([])
-  //   closeArtifact()
-  //   router.push('/')
-  // }
-
-  const isToolInvocationInProgress = useCallback(() => {
+  // Memoize tool invocation check
+  const isToolInvocationInProgress = useMemo(() => {
     if (!messages.length) return false
 
     const lastMessage = messages[messages.length - 1]
@@ -99,7 +149,7 @@ export function ChatPanel({
   }, [query])
 
   // Scroll to the bottom of the container
-  const handleScrollToBottom = () => {
+  const handleScrollToBottom = useCallback(() => {
     const scrollContainer = scrollContainerRef.current
     if (scrollContainer) {
       scrollContainer.scrollTo({
@@ -107,55 +157,7 @@ export function ChatPanel({
         behavior: 'smooth'
       })
     }
-  }
-
-  const VoiceToggle = useCallback(
-    () => (
-      <IconBtn
-        btnProps={{
-          onClick: voiceToggle,
-          disabled: false
-        }}
-        solid={!voiceRecording}
-        iconSize={20}
-        iconStyle={cn(
-          'group-hover:text-sky-600 dark:group-hover:text-sky-400',
-          {
-            'size-5 text-indigo-400 dark:text-indigo-500': voiceRecording
-          }
-        )}
-        withShadow={voiceRecording}
-        icon={voiceRecording ? 'spinners-bars-middle' : 'microphone-noir'}
-      />
-    ),
-    [voiceRecording, voiceToggle]
-  )
-
-  const SendMessage = () => (
-    <IconBtn
-      btnProps={{
-        onClick: isLoading ? stop : undefined,
-        disabled:
-          (input.length === 0 && !isLoading) || isToolInvocationInProgress(),
-        type: isLoading ? 'button' : 'submit'
-      }}
-      solid={!voiceRecording}
-      iconSize={20}
-      iconStyle={cn('text-teal-300 ', {
-        'text-zinc-800':
-          (input.length === 0 && !isLoading) || isToolInvocationInProgress()
-      })}
-      // iconStyle={cn(
-      //   'text-teal-800/40 dark:text-teal-200',
-      //   'disabled:text-foreground/80 disabled:bg-foreground/20 rounded-xl',
-      //   'dark:group-hover:text-cyan-200'
-      // )}
-      withShadow
-      icon={isLoading ? 'spinners-ring' : 'arrow-up-broken'}
-      shadowStyle="text-stone-950"
-      animated
-    />
-  )
+  }, [scrollContainerRef])
 
   const startVoiceChat = useCallback(
     (voice: Voices) => {
@@ -178,20 +180,43 @@ export function ChatPanel({
     }
   }, [setFocus, isLoading])
 
+  // Memoize form className
+  const formClassName = useMemo(
+    () => cn('max-w-3xl w-full mx-auto relative'),
+    []
+  )
+
+  // Memoize wrapper className
+  const wrapperClassName = useMemo(
+    () => cn(
+      'w-full sticky z-10 pb-6 md:px-6 px-2 group/form-container shrink-0',
+      {
+        'sticky bottom-0 px-2 pb-4': messages.length > 0,
+        '': messages.length === 0
+      }
+    ),
+    [messages.length]
+  )
+
+  // Memoize input container className
+  const inputContainerClassName = useMemo(
+    () => cn(
+      'relative flex flex-col w-full gap-2',
+      'dark:bg-sidebar bg-muted/80 dark:border-muted/10',
+      'rounded-3xl border-[0.75px] border-neutral-500',
+      ' shadow-md shadow-stone-200/80 dark:shadow-none',
+      'overflow-hidden',
+      { 'border-neutral-600': showEmptyScreen }
+    ),
+    [showEmptyScreen]
+  )
+
   return (
-    <div
-      className={cn(
-        'w-full sticky z-10 pb-6 md:px-6 px-2 group/form-container shrink-0',
-        {
-          'sticky bottom-0 px-2 pb-4': messages.length > 0,
-          '': messages.length === 0
-        }
-      )}
-    >
+    <div className={wrapperClassName}>
       {messages.length === 0 && <Babes startVoiceChatAction={startVoiceChat} />}
       <form
         onSubmit={handleSubmitAction}
-        className={cn('max-w-3xl w-full mx-auto relative')}
+        className={formClassName}
       >
         {/* Scroll to bottom button - only shown when showScrollToBottomButton is true */}
         {showScrollToBottomButton && messages.length > 0 && (
@@ -207,16 +232,7 @@ export function ChatPanel({
           </Button>
         )}
 
-        <div
-          className={cn(
-            'relative flex flex-col w-full gap-2',
-            'dark:bg-sidebar bg-muted/80 dark:border-muted/10',
-            'rounded-3xl border-[0.75px] border-neutral-500',
-            ' shadow-md shadow-stone-200/80 dark:shadow-none',
-            'overflow-hidden',
-            { 'border-neutral-600': showEmptyScreen }
-          )}
-        >
+        <div className={inputContainerClassName}>
           {/*TEXTAREA GRADIENT BGs */}
           {/* DARK */}
           <div className="absolute pointer-events-none -top-20 right-48 w-[28rem] h-44 dark:bg-neutral-500 rounded-full blur-[69px] opacity-40"></div>
@@ -236,7 +252,7 @@ export function ChatPanel({
             placeholder="your reply"
             onCompositionEnd={handleCompositionEnd}
             onCompositionStart={handleCompositionStart}
-            disabled={isLoading || isToolInvocationInProgress()}
+            disabled={isLoading || isToolInvocationInProgress}
             className="resize-none w-full min-h-12 bg-transparent font-space border-0 py-4 px-5 text-sm placeholder:text-muted-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             onChange={e => {
               handleInputChangeAction(e)
@@ -283,8 +299,13 @@ export function ChatPanel({
               />
             </div>
             <div className="flex items-center gap-4">
-              <VoiceToggle />
-              <SendMessage />
+              <VoiceToggle voiceRecording={voiceRecording} voiceToggle={voiceToggle} />
+              <SendMessage
+                isLoading={isLoading}
+                input={input}
+                isToolInvocationInProgress={isToolInvocationInProgress}
+                stop={stopAction}
+              />
             </div>
           </div>
         </div>
