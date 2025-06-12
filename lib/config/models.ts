@@ -1,5 +1,5 @@
 import { Model } from '@/lib/types/models'
-import { getBaseUrl } from '@/lib/utils/url'
+import { getBaseUrlSync } from '@/lib/utils/url'
 // import defaultModels from './default-models.json'
 import engines from './gf-models.json'
 
@@ -19,7 +19,7 @@ export function validateModel(model: any): model is Model {
 export async function getModels(): Promise<Model[]> {
   try {
     // Get the base URL using the centralized utility function
-    const baseUrlObj = await getBaseUrl()
+    const baseUrlObj = getBaseUrlSync()
 
     // Construct the models.json URL
     const modelUrl = new URL('/config/models.json', baseUrlObj)

@@ -59,9 +59,9 @@ interface UseConversationReturn {
   fetchRecentConversations: () => Promise<void>
 }
 
-export function useConversation({ 
-  id, 
-  userId = 'demo-user' 
+export function useConversation({
+  id,
+  userId = 'demo-user'
 }: UseConversationProps): UseConversationReturn {
   const [convId, setConvId] = useState<string | null>(null)
   const [conversations, setConversations] = useState<IConversation[]>([])
@@ -107,12 +107,15 @@ export function useConversation({
   )
 
   // Default conversation data for missing fields
-  const defaultConversationData = useMemo<Partial<IConversation>>(() => ({
-    title: 'Conversation',
-    assistant: 'Assistant',
-    createdAt: serverTimestamp(),
-    userId
-  }), [userId])
+  const defaultConversationData = useMemo<Partial<IConversation>>(
+    () => ({
+      title: 'Conversation',
+      assistant: 'Assistant',
+      createdAt: serverTimestamp(),
+      userId
+    }),
+    [userId]
+  )
 
   // Ensure conversation doc has all required fields
   useEffect(() => {
@@ -152,14 +155,14 @@ export function useConversation({
     async (message: Message): Promise<void> => {
       try {
         const assistant = (await getVoice()) ?? 'assistant'
-        
-        if (DEBUG_MODE) {
-          console.log('[handleFirstMessage] Creating conversation for:', {
-            messageId: message.id,
-            role: message.role,
-            contentPreview: message.content.slice(0, 50)
-          })
-        }
+
+        // if (DEBUG_MODE) {
+        //   console.log('[handleFirstMessage] Creating conversation for:', {
+        //     messageId: message.id,
+        //     role: message.role,
+        //     contentPreview: message.content.slice(0, 50)
+        //   })
+        // }
 
         const newConvId = await createConversation({
           userId,
@@ -184,15 +187,15 @@ export function useConversation({
         console.warn('[handleSubsequentMessage] No conversation ID available')
         return
       }
-      
-      if (DEBUG_MODE) {
-        console.log('[handleSubsequentMessage] Adding message:', {
-          convId: currentConvId,
-          messageId: message.id,
-          role: message.role
-        })
-      }
-      
+
+      // if (DEBUG_MODE) {
+      //   console.log('[handleSubsequentMessage] Adding message:', {
+      //     convId: currentConvId,
+      //     messageId: message.id,
+      //     role: message.role
+      //   })
+      // }
+
       await addMessage({ convId: currentConvId, message })
     },
     [addMessage]

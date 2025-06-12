@@ -4,11 +4,20 @@ import {
   UploadVoiceParams
 } from '../firebase/types'
 
-interface AudioState {
-  status: 'idle' | 'receiving' | 'uploading' | 'uploaded' | 'playable' | 'playing' | 'error'
+export type AudioStatus =
+  | 'idle'
+  | 'receiving'
+  | 'uploading'
+  | 'uploaded'
+  | 'playable'
+  | 'playing'
+  | 'error'
+export interface AudioState {
+  status: AudioStatus
   url?: string
   error?: string
 }
+export type AudioStates = Record<string, AudioState>
 
 interface ChatMessage {
   id: string
@@ -67,12 +76,15 @@ export function useAudioPlayback({
   }, [audioRef])
 
   // Helper to update audio state
-  const updateAudioState = useCallback((messageId: string, state: Partial<AudioState>) => {
-    setAudioStates((prev: Record<string, AudioState>) => ({
-      ...prev,
-      [messageId]: { ...prev[messageId], ...state }
-    }))
-  }, [])
+  const updateAudioState = useCallback(
+    (messageId: string, state: Partial<AudioState>) => {
+      setAudioStates((prev: Record<string, AudioState>) => ({
+        ...prev,
+        [messageId]: { ...prev[messageId], ...state }
+      }))
+    },
+    []
+  )
 
   /**
    * Generate TTS audio for a message, upload it, update Firestore, and handle playback.
@@ -80,10 +92,10 @@ export function useAudioPlayback({
   const generateSpeech = useCallback(
     async (msg: ChatMessage, convId: string): Promise<void> => {
       const messageId = msg.id
-      
+
       // Early return if not enabled
       if (!enabled) return
-      
+
       setIsGeneratingAudio(true)
       updateAudioState(messageId, { status: 'receiving' })
 
@@ -99,18 +111,20 @@ export function useAudioPlayback({
             voice
           })
         })
-        
+
         if (!response.ok) {
-          throw new Error(`TTS request failed: ${response.status} ${response.statusText}`)
+          throw new Error(
+            `TTS request failed: ${response.status} ${response.statusText}`
+          )
         }
-        
+
         const audioBlob = await response.blob()
         updateAudioState(messageId, { status: 'uploading' })
-        
+
         if (!convId) {
           throw new Error('No conversationId provided')
         }
-        
+
         // 2. Upload to Firebase Storage
         const audioUrl = await uploadVoiceResponse({
           convId,
@@ -118,33 +132,41 @@ export function useAudioPlayback({
           audioBlob
         })
         updateAudioState(messageId, { status: 'uploaded', url: audioUrl })
-        
+
         // 3. Update Firestore
         await updateMessageWithAudioUrl({ convId, messageId, audioUrl })
         updateAudioState(messageId, { status: 'playable', url: audioUrl })
-        
+
         // 4. Play the audio if audio element is available
         if (audioRef.current && audioUrl) {
           // Remove previous event listener if exists
           if (audioEndHandlerRef.current) {
-            audioRef.current.removeEventListener('ended', audioEndHandlerRef.current)
+            audioRef.current.removeEventListener(
+              'ended',
+              audioEndHandlerRef.current
+            )
           }
-          
+
           // Create new event handler
           audioEndHandlerRef.current = () => {
             updateAudioState(messageId, { status: 'playable' })
             setIsTTSPlaying(false)
           }
-          
+
           audioRef.current.src = audioUrl
           await audioRef.current.play()
           updateAudioState(messageId, { status: 'playing' })
           setIsTTSPlaying(true)
-          
-          audioRef.current.addEventListener('ended', audioEndHandlerRef.current, { once: true })
+
+          audioRef.current.addEventListener(
+            'ended',
+            audioEndHandlerRef.current,
+            { once: true }
+          )
         }
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error'
         updateAudioState(messageId, { status: 'error', error: errorMessage })
         setIsTTSPlaying(false)
         console.error('TTS generation error:', error)
@@ -175,9 +197,12 @@ export function useAudioPlayback({
   }, [audioRef])
 
   // Get audio state for a specific message
-  const getAudioState = useCallback((messageId: string): AudioState => {
-    return audioStates[messageId] || { status: 'idle' }
-  }, [audioStates])
+  const getAudioState = useCallback(
+    (messageId: string): AudioState => {
+      return audioStates[messageId] || { status: 'idle' }
+    },
+    [audioStates]
+  )
 
   return {
     audioStates,

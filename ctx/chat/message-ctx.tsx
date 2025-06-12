@@ -97,7 +97,6 @@ export const MessageCtxProvider = ({ children, messages }: MessageCtxProps) => {
       setSections(prevSections => {
         // Only update if sections actually changed
         if (prevSections.length !== newSections.length) {
-          console.log('[MessageCtx] sections:', newSections)
           return newSections
         }
 
@@ -114,7 +113,6 @@ export const MessageCtxProvider = ({ children, messages }: MessageCtxProps) => {
         })
 
         if (hasChanged) {
-          console.log('[MessageCtx] sections:', newSections)
           return newSections
         }
 
@@ -143,7 +141,6 @@ export const MessageCtxProvider = ({ children, messages }: MessageCtxProps) => {
   useEffect(() => {
     if (JSON.stringify(sections) !== JSON.stringify(memoizedSections)) {
       setSections(memoizedSections)
-      console.log('[MessageCtx] sections:', memoizedSections)
     }
   }, [memoizedSections, sections])
 

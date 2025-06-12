@@ -8,6 +8,7 @@ import { ReasoningSection } from './reasoning-section'
 import RelatedQuestions from './related-questions'
 import { ToolSection } from './tool-section'
 import { UserMessage } from './user-message'
+import { AudioStatus } from '@/lib/hooks/use-audio-playback'
 
 interface RenderMessageProps {
   message: Message
@@ -18,7 +19,7 @@ interface RenderMessageProps {
   addToolResult?: (params: { toolCallId: string; result: any }) => void
   onUpdateMessage?: (messageId: string, newContent: string) => Promise<void>
   audioUrl?: string
-  audioStatus?: string
+  audioStatus?: AudioStatus
 }
 
 export function RenderMessage({

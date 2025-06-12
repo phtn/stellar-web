@@ -1,29 +1,15 @@
-import PlayHTWsAuthManager from '@/services/tts/playhtWsAuthManager'
-import { Content } from './content'
-import { getCookie, setCookie } from '@/lib/utils/cookies'
+import Script from 'next/script'
+import { headers } from 'next/headers'
 import { getModels } from '@/lib/config/models'
+import { Content } from './content'
 
 export default async function Page() {
   const models = await getModels()
-  const isVoiceEnabled = getCookie('vc-st')
-
-  if (isVoiceEnabled === 'enabled') {
-    PlayHTWsAuthManager.getInstance()
-      .refresh()
-      .then(() => {
-        console.log('init')
-      })
-      .finally(() => {
-        console.log('Stream ON')
-      })
-
-    const wsUrl =
-      await PlayHTWsAuthManager.getInstance().getWebSocketUrl('PlayDialog')
-
-    if (wsUrl) {
-      setCookie('ws-state', 'enabled')
-    }
-  }
-
-  return <Content models={models} />
+  const nonce = (await headers()).get('x-nonce') ?? undefined
+  return (
+    <>
+      <Script strategy="afterInteractive" nonce={nonce} />
+      <Content models={models} />
+    </>
+  )
 }

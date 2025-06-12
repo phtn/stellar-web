@@ -24,19 +24,21 @@ export const getWSState = async () => {
 export const setVoice = async (voice: Voices) => {
   const store = await cookies()
   store.set('cr-vc', voice, { ...opts })
+  return voice
 }
 
 export const getVoice = async () => {
   const store = await cookies()
-  return store.get('cr-vc')?.value ?? null
+  return store.get('cr-vc')?.value as Voices
 }
-
-export const setVoiceState = async (state: 'enabled' | 'disabled') => {
+type VoiceEnabledState = 'enabled' | 'disabled'
+export const setVoiceState = async (state: VoiceEnabledState) => {
   const store = await cookies()
   store.set('vc-st', state, { ...opts })
+  return state
 }
 
 export const getVoiceState = async () => {
   const store = await cookies()
-  return store.get('vc-st')?.value
+  return store.get('vc-st')?.value as VoiceEnabledState
 }

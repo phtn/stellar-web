@@ -8,6 +8,7 @@ import { RefObject, useCallback, useContext, useEffect, useMemo } from 'react'
 import { RenderMessage } from './render-message'
 import { ToolSection } from './tool-section'
 import { Spinner } from './ui/spinner'
+import { AudioState, AudioStates } from '@/lib/hooks/use-audio-playback'
 
 interface ChatMessagesProps {
   data: JSONValue[] | undefined
@@ -22,7 +23,7 @@ interface ChatMessagesProps {
     messageId: string,
     options?: ChatRequestOptions
   ) => Promise<string | null | undefined>
-  audioStates?: Record<string, { url?: string; status: string; error?: string }>
+  audioStates?: AudioStates
 }
 
 export function ChatMessages({
@@ -34,12 +35,11 @@ export function ChatMessages({
   onQuerySelectAction,
   onUpdateMessage,
   scrollContainerRef,
-  audioStates = {}
+  audioStates = {} as AudioStates
 }: ChatMessagesProps) {
   const manualToolCallId = 'manual-tool-call'
 
-  const { handleOpenChange, on, loadMessages, sections } =
-    useContext(MessageCtx)!
+  const { handleOpenChange, on, sections } = useContext(MessageCtx)!
 
   // get last tool data for manual tool call
   const { lastToolData } = useTools(data)
@@ -70,18 +70,20 @@ export function ChatMessages({
   }, [sections.length, scrollContainerRef])
 
   // Memoize loading indicator check
-  const showLoading = useMemo(() =>
-    isLoading &&
-    sections.length > 0 &&
-    sections?.[sections.length - 1].assistantMessages.length === 0,
+  const showLoading = useMemo(
+    () =>
+      isLoading &&
+      sections.length > 0 &&
+      sections?.[sections.length - 1].assistantMessages.length === 0,
     [isLoading, sections]
   )
 
   // Memoize last section style
-  const getLastSectionStyle = useCallback((sectionIndex: number) =>
-    sectionIndex === sections.length - 1
-      ? { minHeight: 'calc(100dvh-428px)' }
-      : undefined,
+  const getLastSectionStyle = useCallback(
+    (sectionIndex: number) =>
+      sectionIndex === sections.length - 1
+        ? { minHeight: 'calc(40vh)' }
+        : undefined,
     [sections.length]
   )
 
@@ -91,7 +93,7 @@ export function ChatMessages({
       id="scroll-container"
       ref={scrollContainerRef}
       aria-roledescription="chat messages"
-      className={cn('w-full h-full flex-1 overflow-y-auto pt-20')}
+      className={cn('w-full h-full flex-1 overflow-y-auto pt-20 pb-32')}
     >
       <div className="relative mx-auto w-full max-w-3xl px-4">
         {sections?.map((section, sectionIndex) => (
@@ -114,7 +116,9 @@ export function ChatMessages({
                 audioUrl={audioStates[section.userMessage.id]?.url}
                 audioStatus={audioStates[section.userMessage.id]?.status}
               />
-              {showLoading && sectionIndex === sections.length - 1 && <Spinner />}
+              {showLoading && sectionIndex === sections.length - 1 && (
+                <Spinner />
+              )}
             </div>
 
             {/* Assistant messages */}

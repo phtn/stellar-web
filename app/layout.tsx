@@ -8,14 +8,15 @@ import { cn } from '@/lib/utils'
 // import { Analytics } from '@vercel/analytics/next'
 // import AuthGate from '@/components/AuthGate'
 import { Providers } from '@/ctx'
+import { Toasts } from '@/ctx/toast'
+import { VoiceCtxProvider } from '@/ctx/voice'
+import WagmiContext from '@/ctx/wagmi'
+import { config } from '@/ctx/wagmi/config'
 import type { Metadata, Viewport } from 'next'
 import { Inter as FontSans, Space_Grotesk } from 'next/font/google'
-import './globals.css'
-import { cookieToInitialState } from 'wagmi'
 import { headers } from 'next/headers'
-import { config } from '@/ctx/wagmi/config'
-import WagmiContext from '@/ctx/wagmi'
-import { Toasts } from '@/ctx/toast'
+import { cookieToInitialState } from 'wagmi'
+import './globals.css'
 
 const fontSans = FontSans({
   subsets: ['latin'],
@@ -101,13 +102,15 @@ export default async function RootLayout({
               disableTransitionOnChange
             >
               <SidebarProvider defaultOpen>
-                <AppSidebar />
-                <div className="flex flex-col flex-1 h-full min-h-0">
-                  <Header user={user} />
-                  <main className="flex flex-1 min-h-0 h-full">
-                    <ArtifactRoot>{children}</ArtifactRoot>
-                  </main>
-                </div>
+                <VoiceCtxProvider>
+                  <AppSidebar />
+                  <div className="flex flex-col flex-1 h-full min-h-0">
+                    <Header user={user} />
+                    <main className="flex flex-1 min-h-0 h-full">
+                      <ArtifactRoot>{children}</ArtifactRoot>
+                    </main>
+                  </div>
+                </VoiceCtxProvider>
               </SidebarProvider>
               <Toasts />
               {/* <Analytics /> */}

@@ -1,13 +1,16 @@
 'use client'
 
 import { Chat } from '@/components/chat'
-import { generateId } from 'ai'
+import { VoiceInitializer } from '@/components/ui/voice-init'
 import { Model } from '@/lib/types/models'
+import { generateId } from 'ai'
 
-interface ContentProps {
-  models: Model[]
-}
-export const Content = ({ models }: ContentProps) => {
+export const Content = ({ models }: { models: Model[] }) => {
   const id = generateId()
-  return <Chat id={id} models={models} />
+  return (
+    <>
+      <VoiceInitializer />
+      <Chat id={id} models={models} />
+    </>
+  )
 }

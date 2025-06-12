@@ -47,15 +47,15 @@ export async function createConversation({
 export async function addMessage({ convId, message }: AddMessageParams) {
   // logFirestoreArgs('addMessage', 'conversations', convId, 'messages', id)
   const ref = doc(db, 'conversations', convId, 'messages', message.id)
-  console.log('[Firestore] addMessage called with:', { 
-    convId, 
-    messageId: message.id,
-    role: message.role,
-    contentLength: message.content?.length,
-    hasContent: !!message.content
-  })
+  // console.log('[Firestore] addMessage called with:', {
+  //   convId,
+  //   messageId: message.id,
+  //   role: message.role,
+  //   contentLength: message.content?.length,
+  //   hasContent: !!message.content
+  // })
   await setDoc(ref, createPayload(message, 'timestamp'))
-  console.log('[Firestore] addMessage write complete for:', message.id, 'role:', message.role)
+  // console.log('[Firestore] addMessage write complete for:', message.id, 'role:', message.role)
 }
 
 export async function getConversation(convId: string) {

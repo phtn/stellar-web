@@ -66,3 +66,12 @@ export async function getBaseUrlString(): Promise<string> {
   const baseUrlObj = await getBaseUrl()
   return baseUrlObj.toString()
 }
+
+export function getBaseUrlSync(): string {
+  if (typeof window !== 'undefined') {
+    // Client side
+    return window.location.origin
+  }
+  // Server side
+  return process.env.NEXT_PUBLIC_BASE_URL || process.env.BASE_URL || 'http://localhost:3000'
+}

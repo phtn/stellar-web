@@ -1,12 +1,12 @@
 {
   "models": [
     {
-      "id": "ellie",
-      "name": "Ellie",
-      "provider": "Stellar Girlfriends",
+      "id": "stella-r-x",
+      "name": "Stellar",
+      "provider": "Stellar",
       "providerId": "stellar",
       "enabled": true,
-      "toolCallType": "native"
+      "toolCallType": "manual"
     }
   ]
 }

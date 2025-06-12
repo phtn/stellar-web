@@ -4,17 +4,24 @@ import { IconBtn } from './icon-btn'
 import { appKit } from '@/ctx/wagmi'
 import { useTheme } from 'next-themes'
 import { type ThemeMode } from '@reown/appkit'
-import { useAppKitAccount } from '@reown/appkit/react'
+import {
+  useAppKitAccount,
+  useAppKitState,
+  useAppKitProvider,
+  useAppKitNetworkCore,
+  useWalletInfo
+} from '@reown/appkit/react'
 import { parseUnits } from 'viem'
 import { useSend } from '@/lib/hooks/x-use-send'
 import { onSuccess } from '@/ctx/toast'
 
 const TO = '0x611F3143b76a994214d751d762b52D081d8DC4de'
 export const WalletConnector = () => {
-  const { isConnected, address } = useAccount()
+  const { isConnected, address, connector } = useAccount()
   const { theme } = useTheme()
   const { allAccounts } = useAppKitAccount()
   const { sendFrom, isPending, isSuccess } = useSend()
+  const { walletProvider } = useAppKitProvider('eip155')
 
   const sendFn = useCallback(() => {
     sendFrom({ to: TO, value: 5 })

@@ -10,6 +10,8 @@ import { IconBtn } from './icon-btn'
 import { AssistantMessage } from './message'
 import { MessageActions } from './message-actions'
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
+import { AudioState, AudioStatus } from '@/lib/hooks/use-audio-playback'
+import { useVoiceCtx } from '@/ctx/voice'
 
 export type AnswerSectionProps = {
   content: string
@@ -18,7 +20,7 @@ export type AnswerSectionProps = {
   showActions?: boolean
   messageId: string
   audioUrl?: string
-  audioStatus?: string
+  audioStatus?: AudioStatus
 }
 
 export function AnswerSection({
@@ -40,59 +42,16 @@ export function AnswerSection({
     }
   }, [content])
 
+  const {
+    voiceState,
+    playback,
+    audioRef,
+    onAudioPlay,
+    onAudioEnded,
+    onAudioPause
+  } = useVoiceCtx()
+
   // Voice playback logic
-  const audioRef = useRef<HTMLAudioElement>(null)
-  const [isPlaying, setIsPlaying] = useState(false)
-
-  const handleVoicePlayback = useCallback(() => {
-    if (!audioRef.current) return
-    if (isPlaying) {
-      audioRef.current.pause()
-    } else {
-      audioRef.current.play()
-    }
-  }, [isPlaying])
-
-  const onAudioEnded = () => setIsPlaying(false)
-  const onAudioPlay = () => setIsPlaying(true)
-  const onAudioPause = () => setIsPlaying(false)
-
-  const VoicePlayback = useCallback(
-    () => (
-      <IconBtn
-        solid
-        size={28}
-        btnProps={{
-          onClick: handleVoicePlayback,
-          'aria-label': isPlaying ? 'Pause voice' : 'Play voice'
-        }}
-        hoverStyle="group-hover:text-zinc-100/40"
-        icon={
-          audioStatus === 'playable'
-            ? 'tri'
-            : audioStatus === 'playing'
-              ? 'spinners-bars-middle'
-              : audioStatus === 'error'
-                ? 'refresh'
-                : 'spinners-3-dots-move'
-        }
-        iconStyle={cn(
-          'text-indigo-500 group-hover:text-teal-500 dark:text-indigo-500 size-4',
-          {
-            'text-rose-500 size-5': audioStatus === 'error',
-            'dark:text-indigo-300': audioStatus === 'receiving',
-            'dark:text-orange-200 text-orange-300': audioStatus === 'uploading',
-            'dark:text-cyan-300 text-cyan-500': audioStatus === 'uploaded',
-            'dark:text-teal-400 text-teal-500 size-5':
-              audioStatus === 'playable',
-            'dark:text-indigo-300 size-4': audioStatus === 'playing'
-          }
-        )}
-      />
-    ),
-    [handleVoicePlayback, isPlaying, audioStatus]
-  )
-
   const message = content ? (
     <div className="flex flex-col pe-16">
       <div className="flex flex-row items-center">
@@ -106,8 +65,14 @@ export function AnswerSection({
             />
           </AvatarFallback>
         </Avatar>
-        <VoicePlayback />
-        <span>{audioStatus}</span>
+        {voiceState && (
+          <VoicePlayback
+            playFn={playback}
+            audioStatus={audioStatus}
+            isPlaying={audioStatus === 'playing'}
+          />
+        )}
+        {/* <span>{audioStatus}</span> */}
       </div>
       <div className="p-6 border border-muted/20 dark:bg-sidebar bg-muted/80 rounded-2xl max-w-prose ">
         <AssistantMessage message={content} />
@@ -151,3 +116,44 @@ export function AnswerSection({
     </CollapsibleMessage>
   )
 }
+
+interface VoicePlaybackProps {
+  playFn: VoidFunction
+  isPlaying: boolean
+  audioStatus?: AudioStatus
+}
+const VoicePlayback = ({
+  playFn,
+  isPlaying,
+  audioStatus
+}: VoicePlaybackProps) => (
+  <IconBtn
+    solid
+    size={28}
+    btnProps={{
+      onClick: playFn,
+      'aria-label': isPlaying ? 'Pause voice' : 'Play voice'
+    }}
+    hoverStyle="group-hover:text-zinc-100/40"
+    icon={
+      audioStatus === 'playable'
+        ? 'tri'
+        : audioStatus === 'playing'
+          ? 'spinners-bars-middle'
+          : audioStatus === 'error'
+            ? 'refresh'
+            : 'spinners-3-dots-move'
+    }
+    iconStyle={cn(
+      'text-indigo-500 group-hover:text-teal-500 dark:text-indigo-500 size-4',
+      {
+        'text-rose-500 size-5': audioStatus === 'error',
+        'dark:text-indigo-300': audioStatus === 'receiving',
+        'dark:text-orange-200 text-orange-300': audioStatus === 'uploading',
+        'dark:text-cyan-300 text-cyan-500': audioStatus === 'uploaded',
+        'dark:text-teal-400 text-teal-500 size-5': audioStatus === 'playable',
+        'dark:text-indigo-300 size-4': audioStatus === 'playing'
+      }
+    )}
+  />
+)

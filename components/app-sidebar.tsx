@@ -11,10 +11,13 @@ import {
 import { Icon, IconName } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
-import { Suspense } from 'react'
+import { Suspense, useCallback } from 'react'
 import { ChatHistorySection } from './sidebar/chat-history-section'
 import { ChatHistorySkeleton } from './sidebar/chat-history-skeleton'
 import { ReactNode } from 'react-markdown/lib/react-markdown'
+import { useRouter } from 'next/navigation'
+import VoiceToggle from './voice-toggle'
+import { useVoiceCtx } from '@/ctx/voice'
 
 export default function AppSidebar() {
   // const [showOneTap, setShowOneTap] = useState(false)
@@ -23,6 +26,12 @@ export default function AppSidebar() {
   // const handleOneTap = useCallback(() => {
   //   setShowOneTap(true)
   // }, [])
+  const router = useRouter()
+  const toSentry = useCallback(() => {
+    router.push('/sentry')
+  }, [router])
+
+  const { voiceState, toggleVoiceState } = useVoiceCtx()
 
   return (
     <Sidebar side="left" variant="sidebar" collapsible="offcanvas">
@@ -30,16 +39,21 @@ export default function AppSidebar() {
         <Brand />
         <SidebarTrigger />
       </SidebarHeader>
-      <SidebarContent className="flex flex-col ps-4 py-4 h-full">
-        <FeatureBadge icon="voice-solid" label="Voice Enabled" />
+      <SidebarContent className="flex flex-col px-2.5 py-4 h-full">
+        <div className="px-2">
+          <VoiceToggle
+            checked={voiceState}
+            onCheckedChange={toggleVoiceState}
+          />
+        </div>
         <div className="flex-1 overflow-y-auto">
           <Suspense fallback={<ChatHistorySkeleton />}>
             <ChatHistorySection />
           </Suspense>
         </div>
-        {/* <Footer>
-          <UserProfile signFn={handleOneTap} />
-        </Footer> */}
+        <Footer>
+          <FeatureBadge fn={toSentry} icon="laptop" label="Sentry" />
+        </Footer>
       </SidebarContent>
       <SidebarRail />
     </Sidebar>
@@ -89,9 +103,14 @@ const UserProfile = ({ signFn }: UserProfileProps) => (
 interface FeatureProps {
   icon: IconName
   label: string
+  fn?: VoidFunction
 }
-const FeatureBadge = ({ icon, label }: FeatureProps) => (
-  <div className="my-4 w-full flex flex-col gap-2">
+const FeatureBadge = ({
+  icon,
+  label,
+  fn = () => console.log('Feature Badge')
+}: FeatureProps) => (
+  <button onClick={fn} className="my-4 w-full flex flex-col gap-2">
     <div className="flex items-center px-3 space-x-6">
       <Icon
         solid
@@ -100,5 +119,5 @@ const FeatureBadge = ({ icon, label }: FeatureProps) => (
       />
       <span className="tracking-snug font-medium font-space ">{label}</span>
     </div>
-  </div>
+  </button>
 )

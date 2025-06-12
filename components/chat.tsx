@@ -114,11 +114,8 @@ export function Chat({ id, initialMessages, query, models }: IChat) {
     })
 
   // Use the new voice recorder hook
-  const {
-    isRecording,
-    isProcessingAudio,
-    handleRecordingToggle
-  } = useVoiceRecorder({ setInputAction: setInput })
+  const { isRecording, isProcessingAudio, handleRecordingToggle } =
+    useVoiceRecorder({ setInputAction: setInput })
 
   // Replace scroll-to-section effect with:
   useEffect(() => {
@@ -225,7 +222,7 @@ export function Chat({ id, initialMessages, query, models }: IChat) {
 
   useEffect(() => {
     if (convId && assistant) {
-      (async () => {
+      ;(async () => {
         await addMessage({ convId, message: assistant })
         await generateSpeech(assistant, convId)
         setAssistantAction(null)
@@ -242,7 +239,7 @@ export function Chat({ id, initialMessages, query, models }: IChat) {
       )}
     >
       <MessageCtxProvider messages={messages}>
-        <ChatContextSync id={id} messages={messages} />
+        {/* <ChatContextSync id={id} messages={messages} /> */}
         <ChatMessages
           data={data}
           chatId={id}
