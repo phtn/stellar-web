@@ -3,14 +3,14 @@
 import { Icon } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { CollapsibleMessage } from './collapsible-message'
 import { DefaultSkeleton } from './default-skeleton'
 import { IconBtn } from './icon-btn'
 import { AssistantMessage } from './message'
 import { MessageActions } from './message-actions'
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
-import { AudioState, AudioStatus } from '@/lib/hooks/use-audio-playback'
+import { AudioStatus } from '@/lib/hooks/use-audio-playback'
 import { useVoiceCtx } from '@/ctx/voice'
 
 export type AnswerSectionProps = {

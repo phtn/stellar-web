@@ -16,18 +16,12 @@ import { cn } from '@/lib/utils'
 import { useChat } from '@ai-sdk/react'
 import { ChatRequestOptions } from 'ai'
 import type { Message } from 'ai/react'
-import {
-  type FormEvent,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState
-} from 'react'
+import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { ChatMessages } from './chat-messages'
 import { ChatPanel } from './chat-panel'
 import { cleanForTTS } from './message'
+import { getVoiceState } from '@/app/actions'
 
 interface IChat {
   id: string
@@ -37,26 +31,26 @@ interface IChat {
 }
 
 // Child component to sync context after sending
-function ChatContextSync({
-  id,
-  messages
-}: {
-  id: string
-  messages: Message[]
-}) {
-  const { loadMessages } = useContext(MessageCtx)!
-  const loadedRef = useRef(false)
+// function ChatContextSync({
+//   id,
+//   messages
+// }: {
+//   id: string
+//   messages: Message[]
+// }) {
+//   const { loadMessages } = useContext(MessageCtx)!
+//   const loadedRef = useRef(false)
 
-  // Load messages only once when component mounts with an id
-  useEffect(() => {
-    if (loadMessages && id && !loadedRef.current) {
-      loadedRef.current = true
-      loadMessages(id)
-    }
-  }, [id, loadMessages])
+//   // Load messages only once when component mounts with an id
+//   useEffect(() => {
+//     if (loadMessages && id && !loadedRef.current) {
+//       loadedRef.current = true
+//       loadMessages(id)
+//     }
+//   }, [id, loadMessages])
 
-  return null
-}
+//   return null
+// }
 
 export function Chat({ id, initialMessages, query, models }: IChat) {
   const [assistant, setAssistantAction] = useState<Message | null>(null)
@@ -101,14 +95,24 @@ export function Chat({ id, initialMessages, query, models }: IChat) {
   const audioRef = useRef<HTMLAudioElement>(null)
 
   // Use the new audio playback hook
+  const [enabled, setEnabled] = useState(false)
+  const getVoiceEnabledState = useCallback(async () => {
+    const isEnabled = await getVoiceState()
+    setEnabled(isEnabled === 'enabled')
+  }, [])
+
+  useEffect(() => {
+    getVoiceEnabledState().catch(console.error)
+  }, [getVoiceEnabledState])
+
   const { audioStates, generateSpeech, setAudioStates, isGeneratingAudio } =
     useAudioPlayback({
       voice,
+      enabled,
       audioRef,
       outputMode,
       voiceEngine,
       cleanForTTS,
-      enabled: false,
       uploadVoiceResponse,
       updateMessageWithAudioUrl
     })

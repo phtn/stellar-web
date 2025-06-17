@@ -52,11 +52,11 @@ interface IUseAudioPlayback {
 
 export function useAudioPlayback({
   voice,
+  enabled,
   audioRef,
   outputMode,
   voiceEngine,
   cleanForTTS,
-  enabled = false,
   uploadVoiceResponse,
   updateMessageWithAudioUrl
 }: IUseAudioPlayback) {

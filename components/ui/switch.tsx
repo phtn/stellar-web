@@ -1,15 +1,27 @@
 'use client'
 
-import { Switch as SwitchPrimitive, SwitchThumb } from '@radix-ui/react-switch'
+import {
+  Switch as SwitchPrimitive,
+  SwitchProps,
+  SwitchThumb
+} from '@radix-ui/react-switch'
 
 import { cn } from '@/lib/utils/index'
-import { ComponentProps } from 'react'
 import { Icon } from '@/lib/icons'
+import { type IconName } from '@/lib/icons/types'
+import { type ClassName } from '@/app/types'
 
 function Switch({
   className,
+  icon = 'ai-voice',
+  iconStyle,
+  thumbStyle,
   ...props
-}: ComponentProps<typeof SwitchPrimitive>) {
+}: SwitchProps & {
+  icon?: IconName
+  iconStyle?: ClassName
+  thumbStyle?: ClassName
+}) {
   return (
     <SwitchPrimitive
       data-slot="switch"
@@ -22,17 +34,19 @@ function Switch({
       <SwitchThumb
         data-slot="switch-thumb"
         className={cn(
-          'data-[state=checked]:bg-teal-100 pointer-events-none shadow-sm border data-[state=unchecked]:border-muted-foreground data-[state=checked]:border-primary dark:border-transparent flex ml-1 items-center justify-center max-h-[1.75rem] aspect-square overflow-hidden transition-all duration rounded-full shadow-xs ring-0 data-[state=checked]:translate-x-4 data-[state=unchecked]:-translate-x-0 data-[state=checked]:rtl:-translate-x-4'
+          'data-[state=checked]:bg-teal-100 pointer-events-none shadow-sm border data-[state=unchecked]:border-muted-foreground data-[state=checked]:border-primary dark:border-transparent flex ml-1 items-center justify-center max-h-[1.75rem] aspect-square overflow-hidden transition-all duration rounded-full shadow-xs ring-0 data-[state=checked]:translate-x-4 data-[state=unchecked]:-translate-x-0 data-[state=checked]:rtl:-translate-x-4',
+          thumbStyle
         )}
       >
         <Icon
           solid
-          strokeWidth={3}
           size={24}
-          name="voice-solid"
+          name={icon}
+          strokeWidth={3}
           className={cn(
             'data-[state-checked]:text-teal-400 flex-grow shrink-0',
-            { 'dark:text-teal-400 text-primary': props.checked }
+            { 'dark:text-teal-400 text-primary': props.checked },
+            iconStyle
           )}
         />
       </SwitchThumb>

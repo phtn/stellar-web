@@ -32,7 +32,14 @@ export default function VoiceToggle(props: SwitchProps) {
       </Label>
 
       <div className="relative flex h-9 w-12 items-center justify-end">
-        <Switch id={id} {...props} className="h-9 dark:bg-sidebar bg-sidebar" />
+        <Switch
+          id={id}
+          {...props}
+          icon="voice-solid"
+          className="h-9 dark:bg-sidebar bg-sidebar"
+          iconStyle={cn({ '': props.checked })}
+          thumbStyle={cn({ 'dark:bg-background/50': props.checked })}
+        />
       </div>
     </div>
   )

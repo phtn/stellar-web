@@ -19,6 +19,7 @@ import {
   CreateConversationParams,
   IConversation
 } from '../firebase/types'
+import { useRouter } from 'next/navigation'
 
 export type WithId = { id: string }
 export interface SavedMessage extends WithId {
@@ -70,6 +71,8 @@ export function useConversation({
 
   const initialLoadRef = useRef(false)
   const convIdRef = useRef<string | null>(null)
+
+  const router = useRouter()
 
   // Keep ref in sync with state
   useEffect(() => {
@@ -172,12 +175,13 @@ export function useConversation({
         })
 
         await addMessage({ convId: newConvId, message })
+        if (newConvId) router.push(`/chat/${newConvId}`)
       } catch (error) {
         console.error('[handleFirstMessage] Error:', error)
         throw error
       }
     },
-    [id, userId, addMessage, createConversation]
+    [id, userId, addMessage, createConversation, router]
   )
 
   const handleSubsequentMessage = useCallback(
