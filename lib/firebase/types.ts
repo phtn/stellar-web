@@ -9,6 +9,7 @@ export interface CreateConversationParams {
 }
 
 export interface IConversation {
+  id?: string
   title: string
   userId: string
   assistant: string | null

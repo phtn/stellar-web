@@ -8,7 +8,7 @@ import { RefObject, useCallback, useContext, useEffect, useMemo } from 'react'
 import { RenderMessage } from './render-message'
 import { ToolSection } from './tool-section'
 import { Spinner } from './ui/spinner'
-import { AudioState, AudioStates } from '@/lib/hooks/use-audio-playback'
+import { AudioStates } from '@/lib/hooks/use-audio-playback'
 
 interface ChatMessagesProps {
   data: JSONValue[] | undefined

@@ -85,7 +85,7 @@ export function AssistantMessage({
         a: Citing
       }}
     >
-      {message}
+      {cleanForTTS(message)}
     </MemoizedReactMarkdown>
   )
 }

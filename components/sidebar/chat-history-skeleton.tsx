@@ -7,8 +7,8 @@ import {
 export function ChatHistorySkeleton() {
   return (
     <SidebarMenu>
-      {Array.from({ length: 5 }).map((_, idx) => (
-        <SidebarMenuItem key={idx}>
+      {Array.from({ length: 3 }).map((_, idx) => (
+        <SidebarMenuItem key={idx} className="h-12">
           <SidebarMenuSkeleton showIcon={false} />
         </SidebarMenuItem>
       ))}

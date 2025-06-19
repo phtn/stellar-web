@@ -10,7 +10,6 @@ import {
   useState
 } from 'react'
 import { toast } from 'sonner'
-import { set } from 'zod'
 
 // Helper function to check if content is an action or gesture
 const isActionOrGesture = (content: string): boolean => {
@@ -36,13 +35,6 @@ export const useChatOptions = ({
 }: IChatOptions): UseChatOptions => {
   const [body, setBody] = useState<Record<string, string>>({})
 
-  const wrapMessage = useCallback(
-    (message: Message) => {
-      setAssistantAction(message)
-    },
-    [setAssistantAction]
-  )
-
   useEffect(() => {
     if (id) {
       setBody({ id })
@@ -53,15 +45,11 @@ export const useChatOptions = ({
 
   const onFinish = useCallback(
     async (msg: Message) => {
-      if (
-        msg.role === 'assistant' &&
-        msg.content.trim() &&
-        !isActionOrGesture(msg.content)
-      ) {
-        wrapMessage(msg)
+      if (msg.role === 'assistant' && msg.content.trim()) {
+        setAssistantAction(msg)
       }
     },
-    [wrapMessage]
+    [setAssistantAction]
   )
 
   const onError = useCallback((error: Error) => {
